@@ -1,0 +1,21 @@
+[flake8]
+max-line-length = 100
+ignore =
+    E125,E121,E266,E731,E402
+    W503
+    # print is allowed
+    T001, T003
+exclude =
+    .git
+    # __pycache__
+    __pycache__
+    # virtual environment
+    .venv/
+    venv/
+    env/
+    build/
+    # sphinx docs
+    docs/
+    */__init__.py
+max_complexity = 20
+statistics = true
