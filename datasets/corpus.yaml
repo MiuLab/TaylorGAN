@@ -1,0 +1,19 @@
+coco_cleaned:
+  path:
+    train: datasets/coco_cleaned_train.txt
+    valid: datasets/coco_cleaned_valid.txt
+  language: english
+  maxlen: 24
+
+news_cleaned:
+  path:
+    train: datasets/news_cleaned_train.txt
+    valid: datasets/news_cleaned_valid.txt
+  language: english
+  maxlen: 50
+
+test:
+  path: datasets/train.txt
+  language: test
+  maxlen: 10
+  vocab_size: 20
