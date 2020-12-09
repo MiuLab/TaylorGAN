@@ -26,7 +26,7 @@ then, set the path in `datasets/corpus.yaml` to these text files.
 
 ### Pretrained Embeddings
 
-Download the pretrained fast text embeddings from **TODO Link**
+Download the [pretrained fast text embeddings](https://drive.google.com/file/d/1w4AXIWYAukPbs7CQrH7_gxxpToSaecp1/view?usp=sharing)
 
 and set the `PRETRAINED_EN_WORD_FASTTEXT_PATH` in `.env` to this file.
 
@@ -44,10 +44,6 @@ Then, install the packages:
 pipenv install
 ```
 
-### For Developers
-
-**TODO** 
-
 After installation
 
 ```bash
@@ -55,6 +51,8 @@ pipenv shell
 ```
 
 Anytime you modify `.env`, you may reactivate the shell with the above to reload the variables.
+
+### For Developers (**TODO**)
 
 ## Scripts
 
@@ -123,6 +121,8 @@ Then, run the train script with tensorboard logging enabled:
 ```bash
 python scripts/train.py ... --tensorboard
 ```
+
+then, you can view the results by lauching `localhost:9527` with the web browser.
 
 ## Evaluate
 
