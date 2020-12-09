@@ -16,9 +16,10 @@ modify the `DISK_CACHE_DIR`, `TENSORBOARD_PORT`, `TENSORBOARD_LOGDIR` as you nee
 
 ### Datasets
 
-Download the corpus from the following links:
+Download the text datasets from the following links:
 
 [EMNLP 2017 News](https://github.com/pclucas14/GansFallingShort/tree/master/real_data_experiments/data/news)
+
 [COCO Image Caption](https://github.com/pclucas14/GansFallingShort/tree/master/real_data_experiments/data/coco)
 
 then, set the path in `datasets/corpus.yaml` to these text files.
@@ -74,7 +75,7 @@ use --help to get more details.
 - Usage
 
 ```bash
-train.py [-h] --dataset {test} [--maxlen positive_int] [--vocab_size positive_int]
+python scripts/train.py [-h] --dataset {test} [--maxlen positive_int] [--vocab_size positive_int]
          [--loss {alt, JS, KL, RKL}] [--estimator ESTIMATOR_ID [k1=v1,k2=v2 ...]] [--d-steps int]
          [-g GENERATOR_ID [k1=v1,k2=v2 ...]] [--tie-embeddings] [--g-fix-embeddings] [--g-optimizer OPTIMIZER_ID [k1=v1,k2=v2 ...]]
          [--g-regularizer REGULARIZER_ID [k1=v1,k2=v2 ...]] [-d DISCRIMINATOR_ID [k1=v1,k2=v2 ...]] [--d-fix-embeddings]
@@ -83,10 +84,17 @@ train.py [-h] --dataset {test} [--maxlen positive_int] [--vocab_size positive_in
          [--tensorboard [path]] [--tags TAG [TAG ...]] [--jit] [--debug] [--profile [path]]
 ```
 
+See more details by
+
+```bash
+python scripts/train.py -h
+```
+
 - NeurIPS 2020 Parameters
 
 ```bash
-train.py --dataset news_cleaned \
+python scripts/train.py \
+         --dataset news_cleaned \
          -g gru --tie-embeddings \
          --g-op adam learning_rate=1e-4,beta1=0.5,clip_global_norm=10 \
          --g-reg entropy c=0.02,impl=dense \
@@ -113,7 +121,7 @@ It will run a tensorboard that listen to `$TENSORBOARD_LOGDIR` and setup a serve
 Then, run the train script with tensorboard logging enabled:
 
 ```bash
-python -m scripts.train_GAN ... --tensorboard
+python scripts/train.py ... --tensorboard
 ```
 
 ## Evaluate
