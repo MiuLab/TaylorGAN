@@ -52,6 +52,8 @@ pipenv shell
 
 Anytime you modify `.env`, you may reactivate the shell with the above to reload the variables.
 
+### Tensorflow-GPU (**TODO**)
+
 ### For Developers (**TODO**)
 
 ## Scripts
@@ -65,8 +67,6 @@ or
 ```bash
 python -m scripts.xxx
 ```
-
-use --help to get more details.
 
 ### Train GAN
 
@@ -122,7 +122,7 @@ Then, run the train script with tensorboard logging enabled:
 python scripts/train.py ... --tensorboard
 ```
 
-then, you can view the results by lauching `localhost:9527` with the web browser.
+then, you can view the results by lauching `localhost:(TENSORBOARD_PORT)` with the web browser.
 
 ## Evaluate
 
