@@ -101,7 +101,7 @@ class UttutTokenizer(Tokenizer):
     def get_config(self):
         return {
             'tokens': self.tokens,
-            'language_config': self.language_config.serialize(),
+            'language_config': self.language_config.get_config(),
             'maxlen': self.maxlen,
         }
 
@@ -109,7 +109,7 @@ class UttutTokenizer(Tokenizer):
     def from_config(cls, config_dict):
         return cls(
             tokens=config_dict['tokens'],
-            language_config=LanguageConfig.deserialize(config_dict['language_config']),
+            language_config=LanguageConfig.from_config(config_dict['language_config']),
             maxlen=config_dict['maxlen'],
         )
 
