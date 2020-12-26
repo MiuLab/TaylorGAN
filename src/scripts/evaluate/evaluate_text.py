@@ -3,9 +3,9 @@ import warnings
 
 warnings.simplefilter('ignore', category=FutureWarning)
 
-from library.utils import random_sample
-from core.evaluate import BLEUCalculator, SmoothingFunction, FEDCalculator, LSTMLMCalculator
+from core.evaluate import BLEUCalculator, SmoothingFunction, FEDCalculator
 from factories import data_factory
+from library.utils import random_sample
 from scripts.snippets import set_package_verbosity
 
 # HUB_URL = "https://tfhub.dev/google/universal-sentence-encoder-large/3"
@@ -31,8 +31,6 @@ def main(args):
                 cache_dir=meta_data.cache_dir,
             ),
         )
-    if args.lm:
-        lm_caculator = LSTMLMCalculator(os.getenv('NEWS_CLEANED_LM_PATH'))
 
     with open(args.eval_path, 'r') as f_in:
         texts = [line.rstrip() for line in f_in.readlines()]
@@ -41,13 +39,6 @@ def main(args):
     metrics = {}
     for calc in metric_calcuators:
         metrics.update(calc.calculate(tokens=tokens, texts=texts))
-
-    if args.lm:
-        metrics['LM Score'] = lm_caculator.nll_loss(tokens)
-        reverse_lstm_lm_calculator = lm_caculator.copy(load_weight=False)
-        reverse_lstm_lm_calculator.fit(tokens, epochs=RLM_EPOCHS)
-        rlm_score = reverse_lstm_lm_calculator.nll_loss(data_collection.train)
-        metrics['RLM Score'] = rlm_score
 
     print(
         f"{os.path.basename(args.eval_path)},",
@@ -116,7 +107,6 @@ def parse_args(argv):
         develop_parser(),
     ])
     parser.add_argument('--eval-path', required=True)
-    parser.add_argument('--lm', action='store_true')
     return parser.parse_args(argv)
 
 
