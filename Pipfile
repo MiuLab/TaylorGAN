@@ -15,6 +15,7 @@ uttut = "==1.4.4"
 u-msgpack-python = "*"
 pyyaml = "*"
 flexparse = {editable = true,git = "https://github.com/noobOriented/flexparse.git"}
+torch = "*"
 
 [dev-packages]
 "flake8-config-yoctol" = ">=0.0.11"
