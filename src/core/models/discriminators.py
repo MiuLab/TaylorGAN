@@ -1,19 +1,9 @@
 import tensorflow as tf
 
 from library.tf_keras_zoo.layers import Dense, Embedding, Layer
-from library.utils import ObjectWrapper
 
 from .sequence_modeling import TokenSequence
 from .interfaces import ModuleInterface
-
-
-class DiscriminateResult(ObjectWrapper):
-
-    def __init__(self, samples: TokenSequence, word_vecs: tf.Tensor, score: tf.Tensor):
-        super().__init__(samples)
-        self.samples = samples
-        self.word_vecs = word_vecs
-        self.score = score
 
 
 class Discriminator(ModuleInterface):
@@ -26,12 +16,13 @@ class Discriminator(ModuleInterface):
         self.embedder = embedder
         self.binary_output_layer = Dense(units=1)
 
-    def score_samples(self, samples: TokenSequence) -> DiscriminateResult:
-        with tf.keras.backend.name_scope(self.scope):
-            word_vecs = self.embedder(samples.ids)
+    def score_samples(self, samples: TokenSequence) -> tf.Tensor:
+        word_vecs = self.get_embedding(samples.ids)
+        return self.score_word_vector(word_vecs, samples.mask)
 
-        score = self.score_word_vector(word_vecs, samples.mask)
-        return DiscriminateResult(samples=samples, word_vecs=word_vecs, score=score)
+    def get_embedding(self, word_ids) -> tf.Tensor:
+        with tf.keras.backend.name_scope(self.scope):
+            return self.embedder(word_ids)
 
     def score_word_vector(self, word_vecs, mask=None) -> tf.Tensor:
         with tf.keras.backend.name_scope(self.scope):
@@ -44,5 +35,5 @@ class Discriminator(ModuleInterface):
         return [self.embedder, self.network, self.binary_output_layer]
 
     @property
-    def embeddings(self):
+    def embedding_matrix(self):
         return self.embedder.total_embeddings

@@ -2,10 +2,10 @@ import abc
 
 import tensorflow as tf
 
+from core.preprocess import SpecialTokenConfig
 from library.tf_keras_zoo.functions import random_choice_by_logits
 from library.tf_keras_zoo.layers import Layer
 
-from core.preprocess import SpecialTokenConfig
 from .interfaces import ModuleInterface
 from .sequence_modeling import TokenSequence, SampledTokenSequence
 
@@ -24,7 +24,7 @@ class Generator(ModuleInterface):
         pass
 
     @property
-    def embeddings(self):
+    def embedding_matrix(self):
         return self.embedder.total_embeddings
 
 

@@ -2,14 +2,6 @@ from functools import partial
 
 import tensorflow as tf
 
-from library.my_argparse.actions import IdKwargs
-from library.tf_keras_zoo.layers import Dense, Embedding
-from library.tf_keras_zoo.layers.masking import (
-    MaskConv1D, MaskAvgPool1D, MaskMaxPool1D, MaskGlobalAvgPool1D,
-)
-from library.tf_keras_zoo.layers.resnet import ResBlock
-from library.tf_keras_zoo.networks import Sequential
-from library.utils import format_id
 
 from core.models import Discriminator
 from core.objectives.regularizers import (
@@ -18,39 +10,31 @@ from core.objectives.regularizers import (
     GradientPenaltyRegularizer,
     WordVectorRegularizer,
 )
-from factories.base import SimpleFactory, get_help_of_id_kwargs
-from .base import ModuleFactory
+from flexparse import create_action, FactoryMethod, Namespace
+from library.tf_keras_zoo.layers import Dense, Embedding
+from library.tf_keras_zoo.layers.masking import (
+    MaskConv1D, MaskAvgPool1D, MaskMaxPool1D, MaskGlobalAvgPool1D,
+)
+from library.tf_keras_zoo.layers.resnet import ResBlock
+from library.tf_keras_zoo.networks import Sequential
+
+from ..utils import create_factory_action
 
 
-class DiscriminatorSimpleFactory(SimpleFactory):
+def create(args: Namespace, meta_data) -> Discriminator:
+    (network, info), fix_embeddings = args[MODEL_ARGS]
+    print(f"Create discriminator: {info.arg_string}")
+    return Discriminator(
+        network=network,
+        embedder=Embedding.from_weights(
+            weights=meta_data.load_pretrained_embeddings(),
+            trainable=not fix_embeddings,
+        ),
+        name=info.func_name,
+    )
 
-    def create(self, args, meta_data) -> Discriminator:
-        discriminator_id, kwargs = args.discriminator
-        print(f"Create discriminator: {format_id(discriminator_id)}")
-        return Discriminator(
-            network=self.table[discriminator_id](**kwargs),
-            embedder=Embedding.from_weights(
-                weights=meta_data.load_pretrained_embeddings(),
-                trainable=not args.d_fix_embeddings,
-            ),
-            name=discriminator_id,
-        )
 
-    def add_argument_to(self, holder):
-        holder.add_argument(
-            '-d', '--discriminator',
-            action=IdKwargs,
-            id_choices=self.table.keys(),
-            default=IdKwargs.IdKwargsPair('cnn', activation='elu'),
-            metavar='DISCRIMINATOR_ID',
-            split_token=',',
-            help=f"the type of discriminator.\n{get_help_of_id_kwargs(self.table)}\n",
-        )
-        holder.add_argument(
-            '--d-fix-embeddings',
-            action='store_true',
-            help="whether to fix embeddings.",
-        )
+tf.keras.utils.get_custom_objects()['lrelu'] = partial(tf.nn.leaky_relu, alpha=0.1)
 
 
 def cnn(pooling: str = 'avg', padding: str = 'same', activation: str = 'relu'):
@@ -83,19 +67,34 @@ def resnet(activation: str = 'relu'):
     ])
 
 
-tf.keras.utils.get_custom_objects()['lrelu'] = partial(tf.nn.leaky_relu, alpha=0.1)
-discriminator_factory = ModuleFactory(
-    module_factory=DiscriminatorSimpleFactory({
-        'cnn': cnn,
-        'resnet': resnet,
-        'test': lambda: Sequential([Dense(10), MaskGlobalAvgPool1D()]),
-    }),
-    module_name=Discriminator.scope.lower(),
-)
+MODEL_ARGS = [
+    create_factory_action(
+        '-d', '--discriminator',
+        registry={
+            'cnn': cnn,
+            'resnet': resnet,
+            'test': lambda: Sequential([Dense(10), MaskGlobalAvgPool1D()]),
+        },
+        dest='d_network',
+        default='cnn(activation=elu)',
+        return_info=True,
+    ),
+    create_action(
+        '--d-fix-embeddings',
+        action='store_true',
+        help="whether to fix embeddings.",
+    ),
+]
 
-discriminator_factory.regularizer_table.update(dict(
-    spectral=SpectralRegularizer,
-    embedding=EmbeddingRegularizer,
-    grad_penalty=GradientPenaltyRegularizer,
-    word_vec=WordVectorRegularizer,
-))
+REGULARIZER_ARG = create_factory_action(
+    '--d-regularizers',
+    registry={
+        'spectral': SpectralRegularizer,
+        'embedding': EmbeddingRegularizer,
+        'grad_penalty': GradientPenaltyRegularizer,
+        'word_vec': WordVectorRegularizer,
+    },
+    nargs='+',
+    metavar=f"REGULARIZER(*args{FactoryMethod.COMMA}**kwargs)",
+    default=[],
+)

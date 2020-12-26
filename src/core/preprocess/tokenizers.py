@@ -10,7 +10,7 @@ from more_itertools import unique_everseen
 from uttut.pipeline.ops import Pad, Token2Index
 from uttut.pipeline.ops.add_end_token import AddEndToken
 
-from library.utils import logging_block, JSONSerializableMixin
+from library.utils import logging_indent, JSONSerializableMixin
 
 from .adaptors import UttutPipeline
 from .config_objects import CorpusConfig, LanguageConfig, SpecialTokenConfig
@@ -47,7 +47,7 @@ class Tokenizer(abc.ABC, JSONSerializableMixin):
         return len(self.tokens)
 
     def summary(self):
-        with logging_block(f"{self.__class__.__name__} summary:"):
+        with logging_indent(f"{self.__class__.__name__} summary:"):
             print(f"Maxlen: {self.maxlen}.")
             print(f"Vocabulary size: {self.vocab_size}.")
             self.special_token_config.summary()

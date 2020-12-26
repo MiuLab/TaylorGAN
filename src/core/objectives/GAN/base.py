@@ -1,23 +1,37 @@
 import abc
+
 from typing import Callable
 
 import tensorflow as tf
 
 from core.objectives.collections import LossCollection
+from library.utils import FormatableMixin
 
 
-class GANObjective(abc.ABC):
+class GANObjective(FormatableMixin):
 
-    def __init__(self, discriminator, generator_loss):
+    def __init__(self, discriminator, generator_loss, estimator):
         self.discriminator = discriminator
         self.generator_loss = generator_loss
+        self.estimator = estimator
+
+    def __call__(self, generator, real_samples):
+        fake_samples = generator.generate(real_samples.batch_size, real_samples.maxlen)
+        return self.estimator.compute_loss(
+            fake_samples,
+            discriminator=self.discriminator,
+            generator_loss=self.generator_loss,
+        )
+
+    def get_config(self):
+        return {'estimator': self.estimator}
+
+
+class GANEstimator(abc.ABC, FormatableMixin):
 
     @abc.abstractmethod
-    def __call__(self):
+    def compute_loss(self, fake_samples, discriminator, generator_loss):
         pass
-
-    def __str__(self):
-        return f"{self.__class__.__name__}()"
 
 
 class GANLossTuple:
@@ -31,9 +45,10 @@ class GANLossTuple:
         self._discriminator_loss = discriminator_loss or D_BCE
 
     def discriminator_loss(self, discriminator, real_samples, fake_samples):
-        real_score = discriminator.score_samples(real_samples).score
-        fake_score = discriminator.score_samples(fake_samples).score
-        loss = self._discriminator_loss(real_score, fake_score)
+        loss = self._discriminator_loss(
+            real_score=discriminator.score_samples(real_samples),
+            fake_score=discriminator.score_samples(fake_samples),
+        )
         return LossCollection(loss, adv=loss)
 
 

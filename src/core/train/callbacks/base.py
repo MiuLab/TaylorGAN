@@ -1,9 +1,9 @@
-from typing import Dict
+from library.utils import FormatableMixin
 
 
-class Callback:
+class Callback(FormatableMixin):
 
-    def on_train_begin(self, logs: Dict = None):
+    def on_train_begin(self, is_restored: bool):
         pass
 
     def on_epoch_begin(self, epoch: int):
@@ -20,6 +20,9 @@ class Callback:
 
     def on_train_end(self):
         pass
+
+    def get_config(self):
+        return {}
 
 
 NullCallback = Callback

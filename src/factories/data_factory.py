@@ -2,6 +2,10 @@ import os
 import yaml
 
 from dotenv import load_dotenv
+from flexparse import (
+    SUPPRESS, create_action, IntRange, LookUp, Namespace,
+    ArgumentParser,
+)
 from uttut.pipeline.ops import (
     EngTokenizer,
     MergeWhiteSpaceCharacters,
@@ -12,18 +16,7 @@ from uttut.pipeline.ops import (
 from core.preprocess import UttutPreprocessor
 from core.preprocess.adaptors import UttutPipeline
 from core.preprocess.config_objects import CorpusConfig, LanguageConfig, Namespace as PathNamespace
-
-from library.my_argparse import MyArgumentParser, SUPPRESS
-from library.my_argparse.types import int_in_range
-from library.utils import format_id
-
-
-def preprocess(args, return_meta: bool = False):
-    print(f"data_id: {format_id(args.dataset)}")
-    print(f"preprocessor_id {format_id('uttut')}")
-    corpus_config = CORPUS_CONFIGS[args.dataset]
-    preprocessor = UttutPreprocessor(maxlen=args.maxlen, vocab_size=args.vocab_size)
-    return preprocessor.preprocess(corpus_config, return_meta=return_meta)
+from library.utils import format_id, format_path
 
 
 load_dotenv('.env')
@@ -45,6 +38,14 @@ LANGUAGE_CONFIGS = {
         split_token=' ',
     ),
 }
+
+
+def preprocess(args: Namespace, return_meta: bool = False):
+    dataset, maxlen, vocab_size = args[ARGS]
+    print(f"data_id: {format_id(dataset)}")
+    print(f"preprocessor_id {format_id('uttut')}")
+    preprocessor = UttutPreprocessor(maxlen=maxlen, vocab_size=vocab_size)
+    return preprocessor.preprocess(dataset, return_meta=return_meta)
 
 
 def load_corpus_table(path):
@@ -74,32 +75,31 @@ def parse_config(data_id, corpus_dict):
     )
 
 
-CORPUS_CONFIGS = load_corpus_table(CONFIG_PATH)
-
-
-def create_parser(**kwargs):
-    parser = MyArgumentParser(add_help=False, **kwargs)
-    group = parser.add_argument_group(
-        'data',
-        description="Data corpus and preprocessing configurations.",
-    )
-    group.add_argument(
+ARGS = [
+    create_action(
         '--dataset',
-        choices=CORPUS_CONFIGS.keys(),
+        type=LookUp(load_corpus_table(CONFIG_PATH)),
         required=True,
         default=SUPPRESS,
         help='the choice of corpus.',
-    )
-    group.add_argument(
+    ),
+    create_action(
         '--maxlen',
-        type=int_in_range(minval=1),
+        type=IntRange(minval=1),
         help="the max length of sequence padding. "
-             "(use the value declared in corpus_config if not given)",
-    )
-    group.add_argument(
+             f"(use the value declared in {format_path(CONFIG_PATH)} if not given)",
+    ),
+    create_action(
         '--vocab_size',
-        type=int_in_range(minval=1),
+        type=IntRange(minval=1),
         help="the maximum number of tokens. ordered by descending frequency. "
-             "(use the value declared in corpus_config if not given)",
-    )
-    return parser
+             f"(use the value declared in {format_path(CONFIG_PATH)} if not given)",
+    ),
+]
+
+PARSER = ArgumentParser(add_help=False)
+PARSER.add_argument_group(
+    'data',
+    description="data corpus and preprocessing configurations.",
+    actions=ARGS,
+)

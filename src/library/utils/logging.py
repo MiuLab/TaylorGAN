@@ -1,63 +1,36 @@
 import builtins
 import sys
+import warnings
 from contextlib import contextmanager
 from functools import partial
-from typing import List
 
 import termcolor
 from tqdm import tqdm
 from tqdm.contrib import DummyTqdmFile
 
+from .format_utils import format_highlight, format_highlight2
 
+
+STDOUT, STDERR, PRINT = sys.stdout, sys.stderr, builtins.print  # guaranteed builtins!!
 SEPARATION_LINE = termcolor.colored(' '.join(['-'] * 50), attrs=['dark'])
 
 
-def left_aligned(str_list: List[str]) -> List[str]:
-    maxlen = max(map(len, str_list), default=0)
-    return [f"{s:<{maxlen}}" for s in str_list]
-
-
-def format_path(path: str) -> str:
-    return termcolor.colored(path, attrs=['underline'])
-
-
-def format_id(id_str: str, bracket: bool = True) -> str:
-    return termcolor.colored(f"[{id_str}]" if bracket else id_str, 'cyan')
-
-
-def format_highlight(string: str) -> str:
-    bolder = "*" + "-" * (len(string) + 2) + "*"
-    return termcolor.colored(
-        f"{bolder}\n| {string.upper()} |\n{bolder}",
-        color='yellow',
-        attrs=['bold'],
-    )
-
-
-def format_highlight2(string: str) -> str:
-    return termcolor.colored(string, color='green')
-
-
-def format_object(obj, get_attrs=False, **kwargs):
-    if get_attrs:
-        kwargs.update(obj.__dict__)
-    kwargs_str = ', '.join(f"{k}={v}" for k, v in kwargs.items())
-    return f"{obj.__class__.__name__}({kwargs_str})"
-
-
 @contextmanager
-def logging_block(header: str = None, bullet: bool = True):
-    '''DO NOT use it with TqdmRedirector!!!'''
-    _IndentPrinter.print_header(header)
-    _IndentPrinter.indent()
+def logging_indent(header: str = None, bullet: bool = True):
+    if header:
+        _IndentPrinter.print_header(header)
 
-    old_print = builtins.print
-    builtins.print = partial(_IndentPrinter.print_body, bullet=bullet)
+    if _IndentPrinter.level == 0:  # need redirect
+        if builtins.print != PRINT:
+            warnings.warn("`logging_indent` should not be used with other redirector!")
+        builtins.print = partial(_IndentPrinter.print_body, bullet=bullet)
 
+    _IndentPrinter.level += 1
     yield
+    _IndentPrinter.level -= 1
 
-    builtins.print = old_print
-    _IndentPrinter.dedent()
+    if _IndentPrinter.level == 0:  # need recover
+        builtins.print = PRINT
     _IndentPrinter.print_footer()
 
 
@@ -65,19 +38,8 @@ class _IndentPrinter:
 
     '''DO NOT use it with TqdmRedirector!!!'''
 
-    level = 0
-    PRINT = builtins.print
     BULLETS = ["•", "–", "*", "·"]
-
-    @classmethod
-    def indent(cls):
-        if cls.level == 0:  # maybe print is redirected somewhere...
-            cls.PRINT = builtins.print
-        cls.level += 1
-
-    @classmethod
-    def dedent(cls):
-        cls.level -= 1
+    level = 0
 
     @classmethod
     def print_header(cls, header):
@@ -90,14 +52,14 @@ class _IndentPrinter:
 
     @classmethod
     def print_body(cls, *args, bullet: bool = True, **kwargs):
+        assert cls.level > 0
         if cls.level < 2:
-            return cls.PRINT(*args, **kwargs)
-
-        if bullet:
-            bullet_symbol = cls.BULLETS[min(cls.level - 1, len(cls.BULLETS) - 1)]
-            cls.PRINT(' ' * (2 * cls.level - 2) + bullet_symbol, *args, **kwargs)
+            PRINT(*args, **kwargs)
+        elif bullet:
+            bullet_symbol = cls.BULLETS[min(cls.level, len(cls.BULLETS)) - 1]
+            PRINT(' ' * (2 * cls.level - 2) + bullet_symbol, *args, **kwargs)
         else:
-            cls.PRINT(' ' * (2 * cls.level - 3), *args, **kwargs)
+            PRINT(' ' * (2 * cls.level - 3), *args, **kwargs)
 
     @classmethod
     def print_footer(cls):
@@ -109,26 +71,25 @@ class _IndentPrinter:
 
 class TqdmRedirector:
 
-    # ports before enable() is called
-    STDOUT, STDERR, PRINT = sys.stdout, sys.stderr, builtins.print
+    STDOUT, STDERR, PRINT = STDOUT, STDERR, PRINT
 
     @classmethod
     def enable(cls):
-        '''DO NOT use it under logging_block!!!'''
-        # ports before being redirected, maybe there're redirected somewhere...
-        cls.STDOUT, cls.STDERR, cls.PRINT = sys.stdout, sys.stderr, builtins.print
-        TQDMOUT, TQDMERR = DummyTqdmFile(sys.stdout), DummyTqdmFile(sys.stderr)
-        STREAMS_TO_REDIRECT = {None, cls.STDOUT, cls.STDERR, TQDMOUT, TQDMERR}
+        if (sys.stdout, sys.stderr, builtins.print) != (STDOUT, STDERR, PRINT):
+            warnings.warn(f"`{cls.__name__}` should not be used with other redirector!")
 
-        def safe_print(*values, sep=' ', end='\n', file=None, flush=False):
+        tqdm_out, tqdm_err = DummyTqdmFile(STDOUT), DummyTqdmFile(STDERR)
+        STREAMS_TO_REDIRECT = {None, STDOUT, STDERR, tqdm_out, tqdm_err}
+
+        def new_print(*values, sep=' ', end='\n', file=None, flush=False):
             if file in STREAMS_TO_REDIRECT:
                 # NOTE tqdm (v4.40.0) can't support end != '\n' and flush
-                tqdm.write(sep.join(map(str, values)), file=cls.STDOUT)
+                tqdm.write(sep.join(map(str, values)), file=STDOUT)
             else:
-                cls.PRINT(*values, sep=sep, end=end, file=file, flush=flush)
+                PRINT(*values, sep=sep, end=end, file=file, flush=flush)
 
-        sys.stdout, sys.stderr, builtins.print = TQDMOUT, TQDMERR, safe_print
+        sys.stdout, sys.stderr, builtins.print = tqdm_out, tqdm_err, new_print
 
     @classmethod
     def disable(cls):
-        sys.stdout, sys.stderr, builtins.print = cls.STDOUT, cls.STDERR, cls.PRINT
+        sys.stdout, sys.stderr, builtins.print = STDOUT, STDERR, PRINT

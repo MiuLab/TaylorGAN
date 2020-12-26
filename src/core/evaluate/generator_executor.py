@@ -4,9 +4,9 @@ from typing import List
 import numpy as np
 import tensorflow as tf
 
-from library.utils import batch_generator, cached_property
 from core.models.sequence_modeling import TokenSequence
 from core.preprocess import Tokenizer
+from library.utils import batch_generator, cached_property
 
 
 class TextGenerator:

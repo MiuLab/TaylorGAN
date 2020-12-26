@@ -4,8 +4,8 @@ import pathlib
 import numpy as np
 from more_itertools import with_iter
 
-from library.utils import logging_block, tqdm_open, format_path
 from core.cache import cache_center
+from library.utils import logging_indent, tqdm_open, format_path
 
 from .config_objects import CorpusConfig
 from .record_objects import DataCollection, TextDataset, MetaData
@@ -26,10 +26,10 @@ class UttutPreprocessor(Preprocessor):
         self.vocab_size = vocab_size
 
     def preprocess(self, corpus_config: CorpusConfig, return_meta: bool = False):
-        with logging_block("Prepare text tokenizer..."):
+        with logging_indent("Prepare text tokenizer..."):
             tokenizer = self._create_tokenizer(corpus_config)
 
-        with logging_block("Preprocess text corpus..."):
+        with logging_indent("Preprocess text corpus..."):
             data_collection = self._process_data(tokenizer, corpus_config)
 
         if return_meta:
@@ -65,10 +65,10 @@ class UttutPreprocessor(Preprocessor):
                 print(f"Load corpus data from {format_path(filepath)}")
                 return tokenizer.texts_to_array(with_iter(tqdm_open(filepath)))
 
-            with logging_block(f"{key} data:", bullet=False):
+            with logging_indent(f"{key} data:", bullet=False):
                 ids = _process_text_file(path)
-                text = list(map(tokenizer.ids_to_text, ids))
-                text_dataset = TextDataset(ids=ids, text=text)
+                texts = list(map(tokenizer.ids_to_text, ids))
+                text_dataset = TextDataset(ids=ids, texts=texts)
                 setattr(data_collection, key, text_dataset)
 
         return data_collection

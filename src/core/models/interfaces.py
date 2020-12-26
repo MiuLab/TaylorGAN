@@ -5,8 +5,6 @@ from operator import attrgetter
 from more_itertools import unique_everseen
 from tensorflow.python.keras.utils.layer_utils import count_params
 
-from library.utils import logging_block
-
 
 class ModuleInterface(abc.ABC):
 
@@ -36,9 +34,10 @@ class ModuleInterface(abc.ABC):
     def networks(self):
         raise NotImplementedError
 
-    def summary(self):
-        with logging_block(self.scope):
-            trainable_params = count_params(self.trainable_variables)
-            non_trainable_params = count_params(self.non_trainable_variables)
-            print(f"Trainable     params: {trainable_params:>12,}")
-            print(f"Non-trainable params: {non_trainable_params:>12,}")
+    @property
+    def trainable_params(self):
+        return count_params(self.trainable_variables)
+
+    @property
+    def non_trainable_params(self):
+        return count_params(self.non_trainable_variables)

@@ -1,15 +1,106 @@
+import sys
 from unittest.mock import Mock
 
 import numpy as np
 import pytest
 
 from ..cache_utils import (
+    cached_property,
     PickleCache,
     NumpyCache,
     JSONSerializableMixin,
     JSONCache,
-    cache_method_call,
+    reuse_method_call,
 )
+
+
+class TestCacheProperty:
+
+    def test_does_not_execute_twice(self):
+        side_effect = Mock()
+
+        class A:
+
+            @cached_property
+            def foo(self):
+                side_effect()
+                return 'foo'
+
+        a = A()
+        assert a.foo == 'foo'
+        assert side_effect.call_count == 1
+        assert a.foo == 'foo'
+        assert side_effect.call_count == 1  # hit
+
+        a2 = A()
+        assert a2.foo == 'foo'
+        assert side_effect.call_count == 2
+
+    def test_readonly(self):
+        class A:
+
+            @cached_property
+            def foo(self):
+                return 'foo'
+
+        a = A()
+        assert a.foo == 'foo'
+        with pytest.raises(AttributeError):
+            a.foo = 'goo'
+
+    def test_does_not_leak_memory(self):
+
+        class A:
+
+            @cached_property
+            def foo(self):
+                return {}  # not flyweight
+
+        a = A()
+        assert sys.getrefcount(a) == 2  # local here + local in getrefcount
+
+        foo = a.foo
+        assert sys.getrefcount(a) == 2  # keep the same
+        assert sys.getrefcount(foo) == 3  # + ref in cached_property._instance_to_value
+
+        del a
+        assert sys.getrefcount(foo) == 2  # remove from cached_property._instance_to_value
+
+    def test_does_not_cache_if_exception(self):
+        side_effect = Mock()
+
+        class A:
+
+            def __init__(self, will_raise):
+                self.will_raise = will_raise
+
+            @cached_property
+            def foo(self):
+                side_effect()
+                if self.will_raise:
+                    raise ValueError
+                return 'foo'
+
+        a = A(will_raise=True)
+        with pytest.raises(ValueError):
+            a.foo
+        assert side_effect.call_count == 1
+
+        with pytest.raises(ValueError):
+            a.foo
+        assert side_effect.call_count == 2  # has retried
+
+        a.will_raise = False
+        assert a.foo == 'foo'
+        assert side_effect.call_count == 3
+
+        assert a.foo == 'foo'
+        assert side_effect.call_count == 3  # hit
+
+        a.will_raise = True
+        # won't retry so won't raise
+        assert a.foo == 'foo'
+        assert side_effect.call_count == 3  # hit
 
 
 class A(JSONSerializableMixin):
@@ -117,7 +208,7 @@ def test_deserialize_subclass_and_non_subclass():
         D.deserialize(C(1).serialize())
 
 
-def test_cache_method_call():
+def test_reuse_method_call():
     output = '123'
     mocker = Mock(return_value=output)
 
@@ -127,14 +218,14 @@ def test_cache_method_call():
             return mocker()
 
     d = D()
-    with cache_method_call(d, ['foo']):
-        assert d.foo() == output
+    with reuse_method_call(d, ['foo']) as new_d:
+        assert new_d.foo() == output
         assert mocker.call_count == 1
-        assert d.foo() == output
+        assert new_d.foo() == output
         assert mocker.call_count == 1
 
-    assert d.foo() == output
-    assert mocker.call_count == 2  # no cache
+        assert d.foo() == output
+        assert mocker.call_count == 2  # no cache
 
 
 def equal(x, y):

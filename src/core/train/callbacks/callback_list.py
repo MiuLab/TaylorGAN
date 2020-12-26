@@ -1,26 +1,16 @@
-from itertools import chain
-from typing import Dict, Sequence
-
-from library.utils import logging_block
+from typing import List
 
 from .base import Callback
 
 
 class CallbackList(Callback):
 
-    def __init__(
-            self,
-            evaluater: Callback = (),
-            loggers: Sequence[Callback] = (),
-            others: Sequence[Callback] = (),
-        ):
-        self.evaluater = evaluater
-        self.loggers = list(loggers)
-        self.others = list(others)
+    def __init__(self, callbacks: List[Callback]):
+        self.callbacks = callbacks
 
-    def on_train_begin(self, logs: Dict = None):
+    def on_train_begin(self, is_restored: bool):
         for callback in self.callbacks:
-            callback.on_train_begin(logs)
+            callback.on_train_begin(is_restored)
 
     def on_epoch_begin(self, epoch):
         for callback in self.callbacks:
@@ -43,10 +33,8 @@ class CallbackList(Callback):
             callback.on_train_end()
 
     def summary(self):
-        with logging_block("Callbacks:"):
-            for cbk in chain(self.loggers, self.others):
+        for cbk in self.callbacks:
+            if hasattr(cbk, 'summary'):
+                cbk.summary()
+            else:
                 print(cbk)
-
-    @property
-    def callbacks(self):
-        return chain([self.evaluater], self.loggers, self.others)

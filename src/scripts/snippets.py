@@ -39,6 +39,6 @@ def load_serving_signature(path):
     meta_graph_def = tf.saved_model.loader.load(
         sess=tf.get_default_session(),
         tags=[tf.saved_model.tag_constants.SERVING],
-        export_dir=path,
+        export_dir=str(path),
     )
     return meta_graph_def.signature_def

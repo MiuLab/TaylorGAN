@@ -1,2 +1,2 @@
-from .discriminator import discriminator_factory
-from .generator import generator_factory
+from . import discriminator as discriminator_factory
+from . import generator as generator_factory

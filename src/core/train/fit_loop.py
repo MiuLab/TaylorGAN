@@ -5,11 +5,12 @@ from core.preprocess import TextDataset
 from .callbacks import NullCallback
 
 
-class DataGenerator:
+class DataLoader:
 
-    def __init__(self, dataset: TextDataset, batch_size: int):
+    def __init__(self, dataset: TextDataset, batch_size: int, n_epochs: int):
         self.dataset = dataset
         self.batch_size = batch_size
+        self.n_epochs = n_epochs
 
         self.callback = NullCallback()
         self.batch = 0
@@ -21,14 +22,10 @@ class DataGenerator:
         print(f"Skip {epochs} epochs. Finish restoring process.")
         self.epoch += epochs
 
-    def iter_batch_until(self, n_epochs, logs=None):
-        self.callback.on_train_begin(logs={
-            'total': self.total,
-            'is_restored': self.epoch > 1,
-            **(logs or {}),
-        })
+    def __iter__(self):
+        self.callback.on_train_begin(is_restored=self.epoch > 1)
         print(format_highlight("Start Training"))
-        while self.epoch <= n_epochs:
+        while self.epoch <= self.n_epochs:
             self.callback.on_epoch_begin(self.epoch)
             for batch_data in self._get_batch_generator():
                 self.callback.on_batch_begin(self.batch)

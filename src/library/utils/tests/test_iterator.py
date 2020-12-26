@@ -26,7 +26,7 @@ class TestBatchGenerator:
             assert len(batches) == (len(datum) + batch_size - 1) // batch_size
 
         for start, batch in zip(range(0, len(datum), batch_size), batches):
-            assert (batch == datum[start: start + batch_size]).all
+            assert (batch == datum[start: start + batch_size]).all()
 
     def test_shuffle(self):
         data = np.random.choice(100, [10, 3])

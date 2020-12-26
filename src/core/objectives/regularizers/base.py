@@ -1,11 +1,11 @@
 import abc
 
-from library.utils import format_object
+from library.utils import FormatableMixin
 
 from ..collections import LossCollection
 
 
-class Regularizer(abc.ABC):
+class Regularizer(abc.ABC, FormatableMixin):
 
     def __init__(self, coeff: float):
         self.coeff = coeff
@@ -22,6 +22,3 @@ class Regularizer(abc.ABC):
     @abc.abstractmethod
     def compute_loss(self):
         pass
-
-    def __str__(self):
-        return format_object(self, get_attrs=True)

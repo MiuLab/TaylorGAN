@@ -1,23 +1,27 @@
+import abc
+
 import tensorflow as tf
 
-from library.utils import format_id, cache_method_call
-from core.objectives.collections import LossCollection
+from core.models import Generator, Discriminator
+from library.utils import format_id, reuse_method_call, logging_indent
 
+from .optimizer import OptimizerWrapper
 from .pubsub_base import Subject
 
 
 class ModuleUpdater(Subject):
 
-    def __init__(self, module, optimizer):
+    def __init__(self, module, optimizer: OptimizerWrapper, losses: list):
         self.module = module
         self.optimizer = optimizer
+        self.losses = losses
 
         self.step = 0
-        self._losses = []
         super().__init__()
 
-    def add_loss(self, loss: LossCollection):
-        self._losses.append(loss)
+    @abc.abstractmethod
+    def build_graph(self):
+        pass
 
     def _build_train_op(self, loss):
         self._step_tensor = tf.Variable(0, f"{self.module.scope}_step")
@@ -40,40 +44,57 @@ class ModuleUpdater(Subject):
     def info(self):
         return f"{self.module.scope[0]} {format_id(self.module.name)}"
 
+    def summary(self):
+        with logging_indent(self.module.scope):
+            with logging_indent("Model"):
+                print(f"Trainable     params: {self.module.trainable_params:>12,}")
+                print(f"Non-trainable params: {self.module.non_trainable_params:>12,}")
+
+            self.optimizer.summary()
+            with logging_indent("Objective:"):
+                for loss in self.losses:
+                    print(loss)
+
 
 class GeneratorUpdater(ModuleUpdater):
 
     def build_graph(self, real_samples):
-        with cache_method_call(self.generator, ['generate', 'teacher_forcing_generate']):
+        with reuse_method_call(
+            self.generator,
+            ['generate', 'teacher_forcing_generate'],
+        ) as generator:
             loss_collection = sum(
-                loss(generator=self.generator, real_samples=real_samples)
-                for loss in self._losses
+                loss(generator=generator, real_samples=real_samples)
+                for loss in self.losses
             )
 
         self._build_train_op(loss_collection.total)
         self._observables = loss_collection.observables
 
     @property
-    def generator(self):
+    def generator(self) -> Generator:
         return self.module
 
 
 class DiscriminatorUpdater(ModuleUpdater):
 
     def build_graph(self, real_samples, fake_samples):
-        with cache_method_call(self.discriminator, ['score_samples', 'score_word_vector']):
+        with reuse_method_call(
+            self.discriminator,
+            ['score_samples', 'score_word_vector', 'get_embedding'],
+        ) as discriminator:
             loss_collection = sum(
                 loss(
-                    discriminator=self.discriminator,
+                    discriminator=discriminator,
                     real_samples=real_samples,
                     fake_samples=fake_samples,
                 )
-                for loss in self._losses
+                for loss in self.losses
             )
 
         self._build_train_op(loss_collection.total)
         self._observables = loss_collection.observables
 
     @property
-    def discriminator(self):
+    def discriminator(self) -> Discriminator:
         return self.module

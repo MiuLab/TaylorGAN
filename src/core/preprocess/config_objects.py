@@ -9,7 +9,7 @@ from uttut.pipeline.ops import (
     StripWhiteSpaceCharacters,
 )
 
-from library.utils import logging_block, tqdm_open, format_path, JSONSerializableMixin
+from library.utils import logging_indent, tqdm_open, format_path, JSONSerializableMixin
 
 from .adaptors import UttutPipeline, WordEmbeddingCollection
 
@@ -98,6 +98,9 @@ class CorpusConfig:
         except TypeError:
             return False
 
+    def __str__(self):
+        return self.name
+
 
 class SpecialTokenConfig:
 
@@ -123,6 +126,6 @@ class SpecialTokenConfig:
         return super().__getattribute__(key)
 
     def summary(self):
-        with logging_block("Special tokens config:"):
+        with logging_indent("Special tokens config:"):
             for key, (token, idx) in self._attrs.items():
                 print(f"{key} token: '{token}', index: {idx}.")

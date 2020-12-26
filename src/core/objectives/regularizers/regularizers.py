@@ -1,8 +1,8 @@
 import tensorflow as tf
 
+from core.models import Generator, Discriminator
 from library.tf_keras_zoo.functions import compute_advantage, masked_reduce
 
-from core.models import Generator, Discriminator
 from .base import Regularizer, LossCollection
 
 
@@ -15,8 +15,8 @@ class WordVectorRegularizer(Regularizer):
         self.max_norm = max_norm
 
     def compute_loss(self, discriminator: Discriminator, real_samples, fake_samples):
-        real_vecs = discriminator.score_samples(real_samples).word_vecs
-        fake_vecs = discriminator.score_samples(fake_samples).word_vecs
+        real_vecs = discriminator.get_embedding(real_samples.ids)
+        fake_vecs = discriminator.get_embedding(fake_samples.ids)
         real_L2_loss = tf.reduce_sum(tf.square(real_vecs), axis=-1)  # shape (N, T)
         fake_L2_loss = tf.reduce_sum(tf.square(fake_vecs), axis=-1)  # shape (N, T)
         if self.max_norm:
@@ -34,8 +34,8 @@ class GradientPenaltyRegularizer(Regularizer):
         self.center = center
 
     def compute_loss(self, discriminator: Discriminator, real_samples, fake_samples):
-        real_vecs = discriminator.score_samples(real_samples).word_vecs
-        fake_vecs = discriminator.score_samples(fake_samples).word_vecs
+        real_vecs = discriminator.get_embedding(real_samples.ids)
+        fake_vecs = discriminator.get_embedding(fake_samples.ids)
         eps = tf.random_uniform(shape=[real_vecs.shape[0].value, 1, 1], minval=0., maxval=1.)
         inter_word_vecs = real_vecs * eps + fake_vecs * (1 - eps)
         score = discriminator.score_word_vector(inter_word_vecs)

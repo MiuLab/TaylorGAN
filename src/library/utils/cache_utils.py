@@ -4,47 +4,36 @@ import pickle
 from contextlib import contextmanager
 from functools import wraps, lru_cache
 from typing import List
+from weakref import WeakKeyDictionary
 
 import numpy as np
 
-from .logging import format_path
-
-
-_NOT_FOUND = object()
+from .format_utils import format_path
+from .func_utils import ObjectWrapper
 
 
 class cached_property:
 
-    # Simplified https://github.com/python/cpython/blob/3.8/Lib/functools.py#L928-L976
+    NOT_FOUND = object()
 
     def __init__(self, func):
-        self.func = func
-        self.attrname = None
         self.__doc__ = func.__doc__
+        self.func = func
+        self._instance_to_value = WeakKeyDictionary()
 
-    def __set_name__(self, owner, name):
-        if self.attrname is None:
-            self.attrname = name
-        elif name != self.attrname:
-            raise TypeError(
-                "Cannot assign the same cached_property to two different names "
-                f"({self.attrname!r} and {name!r}).",
-            )
-
-    def __get__(self, instance, owner=None):
-        if instance is None:
+    def __get__(self, instance, instance_cls):
+        if instance is None:  # just get the cached_property object
             return self
-        if self.attrname is None:
-            raise TypeError(
-                "Cannot use cached_property instance without calling __set_name__ on it.",
-            )
 
-        cache = instance.__dict__
-        val = cache.get(self.attrname, _NOT_FOUND)
-        if val is _NOT_FOUND:
-            val = self.func(instance)
-            cache[self.attrname] = val
-        return val
+        value = self._instance_to_value.get(instance, self.NOT_FOUND)
+        if value is self.NOT_FOUND:
+            value = self.func(instance)
+            self._instance_to_value[instance] = value
+
+        return value
+
+    def __set__(self, instance, value):
+        raise AttributeError("can't set attribute")
 
 
 class FileCache:
@@ -171,15 +160,14 @@ class JSONCache(FileCache):
 
 
 @contextmanager
-def cache_method_call(obj, methods: List[str]):
-    old_methods = [getattr(obj, name) for name in methods]
-    new_methods = [lru_cache(None)(om) for om in old_methods]
-    for name, new_method in zip(methods, new_methods):
-        setattr(obj, name, new_method)
+def reuse_method_call(obj, methods: List[str]):
+    wrapped_obj = ObjectWrapper(obj)
+    for method_name in methods:
+        old_method = getattr(obj, method_name)
+        new_method = lru_cache(None)(old_method)
+        setattr(wrapped_obj, method_name, new_method)
 
-    yield
+    yield wrapped_obj
 
-    for new_method in new_methods:
-        new_method.cache_clear()
-    for name, old_method in zip(methods, old_methods):
-        setattr(obj, name, old_method)
+    for method_name in methods:
+        getattr(wrapped_obj, method_name).cache_clear()

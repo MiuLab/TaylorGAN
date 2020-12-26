@@ -1,7 +1,7 @@
 import numpy as np
 
 from core.cache import cache_center
-from library.utils import logging_block
+from library.utils import logging_indent
 
 from .config_objects import LanguageConfig, Namespace
 
@@ -9,16 +9,16 @@ from .config_objects import LanguageConfig, Namespace
 class DataCollection(Namespace):
 
     def summary(self):
-        with logging_block("Data summary:"):
+        with logging_indent("Data summary:"):
             for key, array in self.items():
                 print(f"{key} data contains {len(array)} sentences.")
 
 
 class TextDataset:
 
-    def __init__(self, ids, text):
+    def __init__(self, ids, texts):
         self.ids = ids
-        self.text = text
+        self.texts = texts
 
     def __len__(self):
         return len(self.ids)
@@ -38,7 +38,7 @@ class MetaData:
             word_vec_config = self.language_config.load_pretrained_embeddings_msg()
             return word_vec_config.get_matrix_of_tokens(self.tokenizer.tokens)
 
-        with logging_block("Load pretrained embeddings:"):
+        with logging_indent("Load pretrained embeddings:"):
             embeddings = load_embeddings()
             print(f"Dimensions: {embeddings.shape[1]}.")
 

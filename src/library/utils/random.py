@@ -6,6 +6,9 @@ def random_sample(arr, size: int):
         raise ValueError(f"expect `size` <= length of `arr`, Found {size} > {len(arr)}!")
     elif size == len(arr):
         return arr
-    else:
-        sample_ids = np.random.choice(len(arr), replace=False, size=[size])
+
+    sample_ids = np.random.choice(len(arr), replace=False, size=[size])
+    if isinstance(arr, np.ndarray):
         return arr[sample_ids]
+    else:
+        return [arr[idx] for idx in sample_ids]

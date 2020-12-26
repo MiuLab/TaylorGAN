@@ -31,17 +31,6 @@ class TokenSequence:
         return tf.reduce_sum(tf.cast(self.mask, tf.int32), axis=1)
 
 
-class TokenSequenceWithPlaceholder(TokenSequence):
-
-    def __init__(self, batch_size, maxlen, eos_idx=None, pad_idx=None):
-        self.placeholder = tf.placeholder(tf.int32, shape=[batch_size, maxlen])
-        # NOTE pad has been done in preproces
-        super().__init__(ids=self.placeholder, eos_idx=eos_idx, pad_idx=pad_idx)
-
-    def get_feed_dict(self, batch_data):
-        return {self.placeholder: batch_data}
-
-
 class SampledTokenSequence(TokenSequence):
 
     def __init__(self, logits, ids=None, gumbel_vars=None, eos_idx=None, pad_idx=None):

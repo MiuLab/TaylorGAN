@@ -1,4 +1,4 @@
-from .array_utils import safe_divide, get_seqlens, unpad
+from .array_utils import safe_divide, get_seqlens, unpad, random_sample
 from .cache_utils import (
     cached_property,
     FileCache,
@@ -6,21 +6,21 @@ from .cache_utils import (
     PickleCache,
     JSONSerializableMixin,
     JSONCache,
-    cache_method_call,
+    reuse_method_call,
 )
-from .collections import counter_or, counter_ior
+from .collections import counter_or, counter_ior, dict_of_unique, ExponentialMovingAverageMeter
 from .file_helper import count_lines
-from .functional import allow_abbrev_kwargs, get_args, log_args_when_error, ObjectWrapper
-from .iterator import batch_generator, tqdm_open
-from .logging import (
+from .format_utils import (
     format_highlight,
     format_highlight2,
     format_id,
-    format_object,
+    format_list,
     format_path,
+    format_object,
+    FormatableMixin,
+    join_arg_string,
     left_aligned,
-    logging_block,
-    SEPARATION_LINE,
-    TqdmRedirector,
 )
-from .random import random_sample
+from .func_utils import match_abbrev, get_args, log_args_when_error, ObjectWrapper, extract_wrapped
+from .iterator import batch_generator, tqdm_open
+from .logging import logging_indent, SEPARATION_LINE, TqdmRedirector

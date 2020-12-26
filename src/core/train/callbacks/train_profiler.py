@@ -1,7 +1,6 @@
 import cProfile
 import pstats
 import sys
-from typing import Dict
 
 from library.utils import format_path
 
@@ -26,10 +25,10 @@ class TrainProfiler(Callback):
         self.export_filepath = export_filepath
         self.stop_training_when_finish = stop_training_when_finish
 
-    def on_train_begin(self, logs: Dict = None):
+    def on_train_begin(self):
         self.profile = cProfile.Profile(subcalls=False)
 
-    def on_batch_begin(self, batch: int, logs: Dict = None):
+    def on_batch_begin(self, batch: int):
         if batch == self.warm_up:
             print(f"Updates {self.warm_up} times.")
             print("Complete warm-up, start profiling.")
@@ -50,8 +49,9 @@ class TrainProfiler(Callback):
             print("Exit by TrainProfiler.")
             sys.exit(0)
 
-    def __str__(self):
-        return (
-            f"{self.__class__.__name__}(warm_up={self.warm_up}, "
-            f"duration={self.duration}, path={format_path(self.export_filepath)})"
-        )
+    def get_config(self):
+        return {
+            'warm_up': self.warm_up,
+            'duration': self.duration,
+            'path': format_path(self.export_filepath),
+        }

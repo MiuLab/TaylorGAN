@@ -22,7 +22,7 @@ class EmbeddingRegularizer(VariableRegularizer):
         self.max_norm = max_norm
 
     def compute_loss(self, module: ModuleInterface):
-        embedding_L2_loss = tf.reduce_sum(tf.square(module.embeddings), axis=1)  # shape (V, )
+        embedding_L2_loss = tf.reduce_sum(tf.square(module.embedding_matrix), axis=1)  # shape (V, )
         if self.max_norm:
             embedding_L2_loss = tf.maximum(embedding_L2_loss - self.max_norm ** 2, 0)
         return tf.reduce_mean(embedding_L2_loss) / 2  # shape ()
