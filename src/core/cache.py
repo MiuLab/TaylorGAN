@@ -28,7 +28,7 @@ class CacheCenter:
 
 
 load_dotenv('.env')
-cache_root_dir = os.getenv('CACHED_DATA_DIR')
+cache_root_dir = os.getenv('DISK_CACHE_DIR')
 if cache_root_dir is None:
     warnings.warn(
         "`cache_root_dir` is not given. The results of preprocessing won't be saved",
