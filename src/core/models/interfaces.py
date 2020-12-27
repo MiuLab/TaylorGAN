@@ -1,33 +1,21 @@
 import abc
 from itertools import chain
-from operator import attrgetter
-
-from more_itertools import unique_everseen
-from tensorflow.python.keras.utils.layer_utils import count_params
 
 
-class ModuleInterface(abc.ABC):
+class ModuleInterface:
 
     def __init__(self, name: str = None):
+        super().__init__()
         if not name:
             name = self.__class__.__name__
         self.name = name
 
+    def parameters(self):
+        return chain.from_iterable(network.parameters() for network in self.networks)
+
     @property
     def trainable_variables(self):
-        return self._concat_network_attributes('trainable_variables')
-
-    @property
-    def non_trainable_variables(self):
-        return self._concat_network_attributes('non_trainable_variables')
-
-    @property
-    def updates(self):
-        return self._concat_network_attributes('updates')
-
-    def _concat_network_attributes(self, name):
-        attrs = chain.from_iterable(map(attrgetter(name), self.networks))
-        return list(unique_everseen(attrs))
+        return [param for param in self.parameters() if param.require_grad]
 
     @property
     @abc.abstractmethod
@@ -36,8 +24,8 @@ class ModuleInterface(abc.ABC):
 
     @property
     def trainable_params(self):
-        return count_params(self.trainable_variables)
+        return sum(param.numel() for param in self.parameters() if param.requires_grad)
 
     @property
     def non_trainable_params(self):
-        return count_params(self.non_trainable_variables)
+        return sum(param.numel() for param in self.parameters() if not param.requires_grad)
