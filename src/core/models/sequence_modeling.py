@@ -7,12 +7,12 @@ from library.utils import cached_property
 
 class TokenSequence:
 
-    def __init__(self, ids: th.Tensor, eos_idx: int = None, pad_idx: int = None):
+    def __init__(self, ids: torch.Tensor, eos_idx: int = None, pad_idx: int = None):
         if eos_idx is not None:
             self.mask = takewhile_mask(tf.not_equal(ids, eos_idx))
             if pad_idx is not None:
-                pad_idx_tensor = th.full_like(ids, pad_idx)
-                ids = th.where(self.mask, ids, pad_idx_tensor)
+                pad_idx_tensor = torch.full_like(ids, pad_idx)
+                ids = torch.where(self.mask, ids, pad_idx_tensor)
         else:
             self.mask = None
         self.ids = ids
@@ -36,9 +36,9 @@ class SampledTokenSequence(TokenSequence):
 
     def __init__(
             self,
-            logits: th.Tensor,
-            ids: th.Tensor = None,
-            gumbel_vars: th.Tensor = None,
+            logits: torch.Tensor,
+            ids: torch.Tensor = None,
+            gumbel_vars: torch.Tensor = None,
             eos_idx: int = None,
             pad_idx: int = None,
         ):
@@ -55,18 +55,18 @@ class SampledTokenSequence(TokenSequence):
 
     @cached_property
     def probs(self):
-        return th.nn.softmax(self.logits, dim=-1)
+        return torch.nn.softmax(self.logits, dim=-1)
 
     @cached_property
     def neg_logprobs(self):
-        return th.nn.functional.cross_entropy(
+        return torch.nn.functional.cross_entropy(
             self.logits.view(-1, self.vocab_size),
             target=self.ids.view(-1),
         ).view_like(self.ids)  # (N, T)
 
     @cached_property
     def seq_neg_logprobs(self):
-        return th.sum(
+        return torch.sum(
             self.neg_logprobs * self.mask.type_as(self.neg_logprobs),
             dim=-1,
         )  # (N, )

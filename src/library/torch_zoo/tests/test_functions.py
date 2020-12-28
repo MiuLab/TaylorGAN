@@ -5,7 +5,7 @@ from ..functions import takewhile_mask, random_choice_by_logits
 
 
 def test_takewhile_mask():
-    condition = th.Tensor([
+    condition = torch.Tensor([
         [0, 0, 1, 1, 0],
         [1, 1, 0, 1, 1],
         [1, 1, 1, 1, 1],
@@ -30,12 +30,12 @@ def test_takewhile_mask():
 
 def test_random_choice_by_logits():
     N = 1000
-    logits = th.Tensor([1., 2., 3.])
+    logits = torch.Tensor([1., 2., 3.])
     counter = np.bincount([
         random_choice_by_logits(logits)
         for _ in range(N)
     ])
-    probs = th.softmax(logits, dim=-1)
+    probs = torch.softmax(logits, dim=-1)
 
     print(counter)
     # NOTE may randomly fail in a low chance.

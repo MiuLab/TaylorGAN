@@ -1,7 +1,7 @@
 from functools import partial
 
 import tensorflow as tf
-import torch as th
+import torch
 from torch.nn import Embedding, Sequential
 
 from core.models import Discriminator
@@ -28,7 +28,7 @@ def create(args: Namespace, meta_data) -> Discriminator:
     return Discriminator(
         network=network,
         embedder=Embedding.from_pretrained(
-            th.from_numpy(meta_data.load_pretrained_embeddings()),
+            torch.from_numpy(meta_data.load_pretrained_embeddings()),
             freeze=fix_embeddings,
         ),
         name=info.func_name,

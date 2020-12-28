@@ -1,6 +1,6 @@
 from functools import partial
 
-import torch as th
+import torch
 from torch.nn import Embedding, GRUCell, Linear, Sequential
 
 from core.models import Generator, AutoRegressiveGenerator
@@ -18,7 +18,7 @@ def create(args: Namespace, meta_data) -> Generator:
     (cell_func, info), fix_embeddings, tie_embeddings = args[MODEL_ARGS]
     print(f"Create generator: {info.arg_string}")
 
-    embedding_matrix = th.from_numpy(meta_data.load_pretrained_embeddings())
+    embedding_matrix = torch.from_numpy(meta_data.load_pretrained_embeddings())
     embedder = Embedding.from_pretrained(embedding_matrix, freeze=fix_embeddings)
     presoftmax_layer = Linear(embedder.embedding_dim, embedder.num_embeddings)
     if tie_embeddings:

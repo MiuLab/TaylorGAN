@@ -1,7 +1,7 @@
 import abc
+from itertools import chain
 
-import tensorflow as tf
-import torch as th
+import torch
 from torch.nn import Module
 
 from core.preprocess import SpecialTokenConfig
@@ -68,31 +68,30 @@ class AutoRegressiveGenerator(Generator):
             gv_list.append(gv)
 
         return SampledTokenSequence(
-            logits=th.stack(logits_list, axis=1),
-            ids=th.stack(ids_list, axis=1),
-            gumbel_vars=th.stack(gv_list, axis=1),
+            logits=torch.stack(logits_list, axis=1),
+            ids=torch.stack(ids_list, axis=1),
+            gumbel_vars=torch.stack(gv_list, axis=1),
             eos_idx=self.special_token_config.eos.idx,
             pad_idx=self.special_token_config.pad.idx,
         )
 
     def teacher_forcing_generate(self, samples: TokenSequence) -> SampledTokenSequence:
-        sos_idx, state = self._get_start_token_and_state(batch_size=tf.shape(samples.ids)[0])
-        word_ids_with_sos = [sos_idx] + tf.unstack(samples.ids, axis=1)[:-1]
+        sos_idx, state = self._get_start_token_and_state(batch_size=samples.ids.shape[0])
         logits_list = []
-        for word_idx in word_ids_with_sos:
+        for word_idx in chain([sos_idx], torch.unbind(samples.ids, dim=1)[:-1]):
             word_logits, state = self._step_func(word_idx, state)
             logits_list.append(word_logits)
 
         return SampledTokenSequence(
-            logits=tf.stack(logits_list, axis=1),
+            logits=torch.stack(logits_list, axis=1),
             ids=samples.ids,
             eos_idx=self.special_token_config.eos.idx,
             pad_idx=self.special_token_config.pad.idx,
         )
 
     def _get_start_token_and_state(self, batch_size):
-        sos_idx = th.full([batch_size], self.special_token_config.sos.idx)
-        state = th.zeros([batch_size, self.cell.hidden_size])
+        sos_idx = torch.full([batch_size], self.special_token_config.sos.idx)
+        state = torch.zeros([batch_size, self.cell.hidden_size])
         return sos_idx, state
 
     def _step_func(self, word_idx, state):
