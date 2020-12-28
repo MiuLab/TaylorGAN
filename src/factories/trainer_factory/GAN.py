@@ -1,4 +1,4 @@
-import tensorflow as tf
+import torch
 
 from core.objectives.GAN import (
     BCE,
@@ -80,7 +80,7 @@ GAN_ARGS = [
         type=LookUp({
             'alt': GANLossTuple(lambda fake_score: BCE(fake_score, labels=1.)),  # RKL - 2JS
             'JS': GANLossTuple(lambda fake_score: -BCE(fake_score, labels=0.)),  # 2JS
-            'KL': GANLossTuple(lambda fake_score: -tf.exp(fake_score)),  # -sig / (1 - sig)
+            'KL': GANLossTuple(lambda fake_score: -torch.exp(fake_score)),  # -sig / (1 - sig)
             'RKL': GANLossTuple(lambda fake_score: -fake_score),  # log((1 - sig) / sig)
         }),
         default='RKL',

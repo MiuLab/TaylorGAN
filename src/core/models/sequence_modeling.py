@@ -1,5 +1,4 @@
-import tensorflow as tf
-import torch as th
+import torch
 
 from library.torch_zoo.functions import takewhile_mask, random_choice_by_logits
 from library.utils import cached_property
@@ -9,7 +8,7 @@ class TokenSequence:
 
     def __init__(self, ids: torch.Tensor, eos_idx: int = None, pad_idx: int = None):
         if eos_idx is not None:
-            self.mask = takewhile_mask(tf.not_equal(ids, eos_idx))
+            self.mask = takewhile_mask(torch.not_equal(ids, eos_idx))
             if pad_idx is not None:
                 pad_idx_tensor = torch.full_like(ids, pad_idx)
                 ids = torch.where(self.mask, ids, pad_idx_tensor)
@@ -26,10 +25,10 @@ class TokenSequence:
         return self.ids.shape[1]
 
     @cached_property
-    def length(self) -> tf.Tensor:
+    def length(self) -> torch.Tensor:
         if self.mask is None:
             return self.maxlen
-        return tf.reduce_sum(tf.cast(self.mask, tf.int32), axis=1)
+        return self.mask.type_as(torch.int32).sum(dim=1)
 
 
 class SampledTokenSequence(TokenSequence):
@@ -50,23 +49,21 @@ class SampledTokenSequence(TokenSequence):
         self.gumbel_vars = gumbel_vars
 
     @property
-    def vocab_size(self):
+    def vocab_size(self) -> int:
         return self.logits.shape[-1]
 
     @cached_property
-    def probs(self):
+    def probs(self) -> torch.Tensor:
         return torch.nn.softmax(self.logits, dim=-1)
 
     @cached_property
-    def neg_logprobs(self):
+    def neg_logprobs(self) -> torch.Tensor:
         return torch.nn.functional.cross_entropy(
             self.logits.view(-1, self.vocab_size),
             target=self.ids.view(-1),
-        ).view_like(self.ids)  # (N, T)
+            reduction='none',
+        ).view(self.batch_size, self.maxlen)  # (N, T)
 
     @cached_property
-    def seq_neg_logprobs(self):
-        return torch.sum(
-            self.neg_logprobs * self.mask.type_as(self.neg_logprobs),
-            dim=-1,
-        )  # (N, )
+    def seq_neg_logprobs(self) -> torch.Tensor:
+        return (self.neg_logprobs * self.mask.type_as(self.neg_logprobs)).sum(dim=-1)  # (N, )

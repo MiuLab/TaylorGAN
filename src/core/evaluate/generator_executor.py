@@ -13,7 +13,7 @@ class TextGenerator:
 
     def __init__(self, generator, tokenizer: Tokenizer):
         self.generator = generator
-        self.tokenizer = tokenizer
+        self._tokenizer = tokenizer
 
     def generate_texts(self, size: int, batch_size: int = 64, temperature: float = 1.) -> List[str]:
         return list(map(
@@ -25,9 +25,9 @@ class TextGenerator:
         batch_list = [
             self.generator.generate(
                 min(size - start, batch_size),
-                self.tokenizer.maxlen,
-            ).numpy()
-            for start in range(0, size - batch_size + 1, batch_size)
+                self._tokenizer.maxlen,
+            ).ids.numpy()
+            for start in range(0, max(size - batch_size, 0) + 1, batch_size)
         ]
         return np.concatenate(batch_list, axis=0)
 
