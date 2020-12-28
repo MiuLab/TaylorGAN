@@ -1,7 +1,8 @@
 from functools import partial
 
 import tensorflow as tf
-
+import torch as th
+from torch.nn import Embedding, Sequential
 
 from core.models import Discriminator
 from core.objectives.regularizers import (
@@ -11,12 +12,12 @@ from core.objectives.regularizers import (
     WordVectorRegularizer,
 )
 from flexparse import create_action, FactoryMethod, Namespace
-from library.tf_keras_zoo.layers import Dense, Embedding
+from library.tf_keras_zoo.layers import Dense
 from library.tf_keras_zoo.layers.masking import (
     MaskConv1D, MaskAvgPool1D, MaskMaxPool1D, MaskGlobalAvgPool1D,
 )
 from library.tf_keras_zoo.layers.resnet import ResBlock
-from library.tf_keras_zoo.networks import Sequential
+from library.torch_zoo.layers import GlobalAvgPool1D
 
 from ..utils import create_factory_action
 
@@ -26,9 +27,9 @@ def create(args: Namespace, meta_data) -> Discriminator:
     print(f"Create discriminator: {info.arg_string}")
     return Discriminator(
         network=network,
-        embedder=Embedding.from_weights(
-            weights=meta_data.load_pretrained_embeddings(),
-            trainable=not fix_embeddings,
+        embedder=Embedding.from_pretrained(
+            th.from_numpy(meta_data.load_pretrained_embeddings()),
+            freeze=fix_embeddings,
         ),
         name=info.func_name,
     )
@@ -73,7 +74,7 @@ MODEL_ARGS = [
         registry={
             'cnn': cnn,
             'resnet': resnet,
-            'test': lambda: Sequential([Dense(10), MaskGlobalAvgPool1D()]),
+            'test': lambda: GlobalAvgPool1D(dim=1),
         },
         dest='d_network',
         default='cnn(activation=elu)',
