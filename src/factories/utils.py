@@ -1,6 +1,6 @@
 from typing import List
 
-from flexparse import ArgumentParser, create_action, Action, FactoryMethod
+from flexparse import ArgumentParser, create_action, Action, LookUpCall
 
 
 def create_factory_action(
@@ -8,15 +8,17 @@ def create_factory_action(
         registry: dict,
         help_prefix: str = '',
         default=None,
-        return_info: bool = False,
+        set_info: bool = False,
         **kwargs,
     ) -> Action:
-    factory = FactoryMethod(registry, return_info=return_info)
+    type_ = LookUpCall(registry, set_info=set_info, match_abbrev=False)
     return create_action(
         *args,
-        type=factory,
+        type=type_,
         default=default,
-        help=help_prefix + factory.get_registry_help(),
+        help=(
+            help_prefix + "custom options and registry: \n" + "\n".join(type_.get_helps()) + "\n"
+        ),
         **kwargs,
     )
 
