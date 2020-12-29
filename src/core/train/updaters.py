@@ -28,13 +28,23 @@ class ModuleUpdater(Subject):
     def summary(self):
         with logging_indent(self.module.scope):
             with logging_indent("Model"):
-                print(f"Trainable     params: {self.module.trainable_params:>12,}")
-                print(f"Non-trainable params: {self.module.non_trainable_params:>12,}")
+                print(
+                    "Trainable     params:,"
+                    f"{count_numel(self.module.trainable_variables):>12}",
+                )
+                print(
+                    "Non-trainable params: "
+                    f"{count_numel(self.module.non_trainable_variables):>12,}",
+                )
 
-            self.optimizer.summary()
+            print(f"Optimizer: {self.optimizer}")
             with logging_indent("Objective:"):
                 for loss in self.losses:
                     print(loss)
+
+
+def count_numel(params) -> int:
+    return sum(p.numel() for p in params)
 
 
 class GeneratorUpdater(ModuleUpdater):
@@ -51,6 +61,7 @@ class GeneratorUpdater(ModuleUpdater):
 
         # TODO, tensor for checkpoint
         self.step += 1
+        self.optimizer.zero_grad()
         loss_collection.total.backward()
         losses = {
             key: tensor.detach().numpy()
@@ -58,6 +69,8 @@ class GeneratorUpdater(ModuleUpdater):
         }
         for subscriber in self._subscribers:
             subscriber.update(self.step, losses)
+
+        self.optimizer.step()
 
     @property
     def generator(self) -> Generator:
@@ -82,6 +95,7 @@ class DiscriminatorUpdater(ModuleUpdater):
 
         # TODO, tensor for checkpoint
         self.step += 1
+        self.optimizer.zero_grad()
         loss_collection.total.backward()
         losses = {
             key: tensor.detach().numpy()
@@ -89,6 +103,8 @@ class DiscriminatorUpdater(ModuleUpdater):
         }
         for subscriber in self._subscribers:
             subscriber.update(self.step, losses)
+
+        self.optimizer.step()
 
     @property
     def discriminator(self) -> Discriminator:

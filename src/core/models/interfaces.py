@@ -15,17 +15,13 @@ class ModuleInterface:
 
     @property
     def trainable_variables(self):
-        return [param for param in self.parameters() if param.require_grad]
+        return [param for param in self.parameters() if param.requires_grad]
+
+    @property
+    def non_trainable_variables(self):
+        return [param for param in self.parameters() if not param.requires_grad]
 
     @property
     @abc.abstractmethod
     def networks(self):
         raise NotImplementedError
-
-    @property
-    def trainable_params(self):
-        return sum(param.numel() for param in self.parameters() if param.requires_grad)
-
-    @property
-    def non_trainable_params(self):
-        return sum(param.numel() for param in self.parameters() if not param.requires_grad)

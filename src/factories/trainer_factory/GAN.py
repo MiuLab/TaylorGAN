@@ -1,5 +1,6 @@
 import torch
 
+from core.models import Discriminator
 from core.objectives.GAN import (
     BCE,
     GANObjective,
@@ -36,7 +37,7 @@ class GANCreator(TrainerCreator):
     def create_discriminator_updater(self, discriminator, discriminator_loss):
         return DiscriminatorUpdater(
             discriminator,
-            optimizer=self.args[D_OPTIMIZER_ARG],
+            optimizer=self.args[D_OPTIMIZER_ARG](discriminator.trainable_variables),
             losses=[
                 discriminator_loss,
                 *self.args[discriminator_factory.REGULARIZER_ARG],
@@ -53,7 +54,7 @@ class GANCreator(TrainerCreator):
         )
 
     @cached_property
-    def _discriminator(self):
+    def _discriminator(self) -> Discriminator:
         return discriminator_factory.create(self.args, self.meta_data)
 
     @classmethod
