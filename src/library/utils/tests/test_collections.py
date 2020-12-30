@@ -1,6 +1,4 @@
-import pytest
-
-from ..collections import counter_or, dict_of_unique, ExponentialMovingAverageMeter
+from ..collections import counter_or, ExponentialMovingAverageMeter
 
 
 def test_counter_or():
@@ -8,12 +6,6 @@ def test_counter_or():
         {'a': 3, 'b': 1},
         {'a': 2, 'c': 1},
     ]) == {'a': 3, 'b': 1, 'c': 1}
-
-
-def test_dict_of_unique():
-    assert dict_of_unique([(1, 2), (3, 4)]) == {1: 2, 3: 4}
-    with pytest.raises(ValueError):
-        dict_of_unique([(1, 2), (1, 4)])
 
 
 def test_exponential_average_meter():
