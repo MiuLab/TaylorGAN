@@ -12,7 +12,7 @@ from core.objectives.GAN import (
 )
 from core.train import DiscriminatorUpdater, GANTrainer
 from factories.modules import discriminator_factory
-from flexparse import create_action, LookUp, IntRange
+from flexparse import create_action, LookUp, LookUpCall, IntRange
 from library.utils import cached_property
 
 from ..utils import create_factory_action
@@ -89,12 +89,12 @@ GAN_ARGS = [
     ),
     create_factory_action(
         '--estimator',
-        registry={
+        type=LookUpCall({
             'reinforce': ReinforceEstimator,
             'st': StraightThroughEstimator,
             'taylor': TaylorEstimator,
             'gumbel': GumbelSoftmaxEstimator,
-        },
+        }),
         default='taylor',
         help_prefix="gradient estimator for discrete sampling.\n",
     ),

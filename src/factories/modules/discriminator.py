@@ -11,7 +11,7 @@ from core.objectives.regularizers import (
     GradientPenaltyRegularizer,
     WordVectorRegularizer,
 )
-from flexparse import create_action, Namespace
+from flexparse import create_action, Namespace, LookUpCall
 from library.tf_keras_zoo.layers import Dense
 from library.tf_keras_zoo.layers.masking import (
     MaskConv1D, MaskAvgPool1D, MaskMaxPool1D, MaskGlobalAvgPool1D,
@@ -71,14 +71,15 @@ def resnet(activation: str = 'relu'):
 MODEL_ARGS = [
     create_factory_action(
         '-d', '--discriminator',
-        registry={
-            'cnn': cnn,
-            'resnet': resnet,
-            'test': lambda: GlobalAvgPool1D(dim=1),
-        },
-        dest='d_network',
+        type=LookUpCall(
+            {
+                'cnn': cnn,
+                'resnet': resnet,
+                'test': lambda: GlobalAvgPool1D(dim=1),
+            },
+            set_info=True,
+        ),
         default='cnn(activation=elu)',
-        set_info=True,
     ),
     create_action(
         '--d-fix-embeddings',
@@ -89,12 +90,12 @@ MODEL_ARGS = [
 
 REGULARIZER_ARG = create_factory_action(
     '--d-regularizers',
-    registry={
+    type=LookUpCall({
         'spectral': SpectralRegularizer,
         'embedding': EmbeddingRegularizer,
         'grad_penalty': GradientPenaltyRegularizer,
         'word_vec': WordVectorRegularizer,
-    },
+    }),
     nargs='+',
     metavar="REGULARIZER(*args, **kwargs)",
     default=[],

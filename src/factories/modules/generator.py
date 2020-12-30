@@ -9,7 +9,7 @@ from core.objectives.regularizers import (
     EmbeddingRegularizer,
     EntropyRegularizer,
 )
-from flexparse import create_action, Namespace
+from flexparse import create_action, Namespace, LookUpCall
 
 from ..utils import create_factory_action
 
@@ -46,12 +46,13 @@ def gru_cell(units: int = 1024):
 MODEL_ARGS = [
     create_factory_action(
         '-g', '--generator',
-        dest='g_cell',
-        registry={
-            'gru': gru_cell,
-            'test': lambda: partial(GRUCell, hidden_size=10),
-        },
-        set_info=True,
+        type=LookUpCall(
+            {
+                'gru': gru_cell,
+                'test': lambda: partial(GRUCell, hidden_size=10),
+            },
+            set_info=True,
+        ),
         default='gru',
     ),
     create_action(
@@ -68,11 +69,11 @@ MODEL_ARGS = [
 
 REGULARIZER_ARG = create_factory_action(
     '--g-regularizers',
-    registry={
+    type=LookUpCall({
         'spectral': SpectralRegularizer,
         'embedding': EmbeddingRegularizer,
         'entropy': EntropyRegularizer,
-    },
+    }),
     nargs='+',
     metavar="REGULARIZER(*args, **kwargs)",
     default=[],
