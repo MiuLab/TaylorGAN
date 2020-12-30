@@ -1,6 +1,8 @@
+import inspect
+
 import pytest
 
-from ..func_utils import match_abbrev, ObjectWrapper
+from ..func_utils import match_abbrev, ObjectWrapper, wraps_with_new_signature
 
 
 def test_abbrev_kwargs():
@@ -37,3 +39,15 @@ def test_object_wrapper():
     b = B(a)
     assert b.foo() == a.foo()
     assert b.goo() == 'goo'
+
+
+def test_wraps_with_new_signature():
+
+    def foo(a, b):
+        pass
+
+    @wraps_with_new_signature(foo)
+    def wrapper(*args, c, **kwargs):
+        pass
+
+    assert list(inspect.signature(wrapper).parameters.keys()) == ['a', 'b', 'c']

@@ -21,6 +21,6 @@ from .format_utils import (
     join_arg_string,
     left_aligned,
 )
-from .func_utils import match_abbrev, get_args, ObjectWrapper, ArgumentBinder
+from .func_utils import match_abbrev, get_args, ObjectWrapper, ArgumentBinder, wraps_with_new_signature
 from .iterator import batch_generator, tqdm_open
 from .logging import logging_indent, SEPARATION_LINE, TqdmRedirector

@@ -1,5 +1,5 @@
 import inspect
-from functools import wraps
+from functools import wraps, WRAPPER_ASSIGNMENTS, WRAPPER_UPDATES, update_wrapper
 from typing import List
 
 from .collections import dict_of_unique
@@ -81,3 +81,20 @@ class ArgumentBinder:
             )
 
         return bound_function
+
+
+def wraps_with_new_signature(wrapped, assigned=WRAPPER_ASSIGNMENTS, updated=WRAPPER_UPDATES):
+
+    def update_wrapper_signature(wrapper):
+        wrapper = update_wrapper(wrapper, wrapped=wrapped, assigned=assigned, updated=updated)
+        old_sig = inspect.signature(wrapped)
+        add_params = [
+            p
+            for p in inspect.signature(wrapper, follow_wrapped=False).parameters.values()
+            if p.kind not in (inspect.Parameter.VAR_KEYWORD, inspect.Parameter.VAR_POSITIONAL)
+        ]
+        new_sig = old_sig.replace(parameters=[*old_sig.parameters.values(), *add_params])
+        wrapper.__signature__ = new_sig
+        return wrapper
+
+    return update_wrapper_signature
