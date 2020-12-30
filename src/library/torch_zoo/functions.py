@@ -13,11 +13,11 @@ def takewhile_mask(condition: torch.Tensor, exclusive: bool = True) -> torch.Ten
 
 def masked_reduce(x: torch.Tensor, mask: torch.Tensor, keep_batch: bool = False) -> torch.Tensor:
     if x.ndim > 2:
-        x = torch.sum(x, axis=list(range(2, x.shape.ndims)))
-    seq_sum = torch.sum(x * mask, axis=-1)  # shape (N)
+        x = x.sum(tuple(range(2, x.ndim)))
+    seq_sum = (x * mask).sum(dim=-1)  # shape (N)
     if keep_batch:
         return seq_sum
-    return torch.reduce_mean(seq_sum)
+    return seq_sum.mean()
 
 
 def random_choice_by_logits(logits, return_gumbel: bool = False, eps: float = 1e-8):
