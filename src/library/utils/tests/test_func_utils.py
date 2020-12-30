@@ -1,17 +1,6 @@
 import pytest
 
-from ..func_utils import log_args_when_error, match_abbrev, ObjectWrapper
-
-
-def test_log_args_when_error():
-
-    @log_args_when_error
-    def foo(x, y, z):
-        pass
-
-    with pytest.raises(TypeError) as e:
-        foo(1, 2)
-        assert e.msg == "allowed arguments of foo: 'x', 'y', 'z'"
+from ..func_utils import match_abbrev, ObjectWrapper
 
 
 def test_abbrev_kwargs():

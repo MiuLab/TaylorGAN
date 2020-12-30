@@ -6,19 +6,6 @@ from .collections import dict_of_unique
 from .format_utils import format_list
 
 
-def log_args_when_error(func):
-    @wraps(func)
-    def wrapped(*args, **kwargs):
-        try:
-            output = func(*args, **kwargs)
-        except TypeError:
-            func_args = get_args(func)
-            raise TypeError(f"allowed arguments of {func.__qualname__}: {format_list(func_args)}")
-        return output
-
-    return wrapped
-
-
 def match_abbrev(func):
     func_args = get_args(func)
     bypass = inspect.getfullargspec(func).varkw is not None
@@ -58,12 +45,6 @@ def get_args(func) -> List[str]:
     if func_args and func_args[0] in ('self', 'cls'):
         return func_args[1:]
     return func_args
-
-
-def extract_wrapped(func, attr_name='__wrapped__'):
-    if hasattr(func, attr_name):
-        return extract_wrapped(getattr(func, attr_name))
-    return func
 
 
 class ObjectWrapper:
