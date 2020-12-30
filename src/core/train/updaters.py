@@ -1,7 +1,5 @@
 import abc
 
-import tensorflow as tf
-
 from core.models import Generator, Discriminator
 from library.utils import format_id, reuse_method_call, logging_indent
 
@@ -20,25 +18,8 @@ class ModuleUpdater(Subject):
         super().__init__()
 
     @abc.abstractmethod
-    def build_graph(self):
+    def update_step(self):
         pass
-
-    def _build_train_op(self, loss):
-        self._step_tensor = tf.Variable(0, f"{self.module.scope}_step")
-        with tf.control_dependencies(self.module.updates):
-            self._train_op = self.optimizer.minimize(
-                loss,
-                var_list=self.module.trainable_variables,
-                global_step=self._step_tensor,
-            )
-
-    def update_step(self, feed_dict=None):
-        _, self.step, losses = tf.get_default_session().run(
-            [self._train_op, self._step_tensor, self._observables],
-            feed_dict=feed_dict,
-        )
-        for subscriber in self._subscribers:
-            subscriber.update(self.step, losses)
 
     @property
     def info(self):
@@ -47,18 +28,28 @@ class ModuleUpdater(Subject):
     def summary(self):
         with logging_indent(self.module.scope):
             with logging_indent("Model"):
-                print(f"Trainable     params: {self.module.trainable_params:>12,}")
-                print(f"Non-trainable params: {self.module.non_trainable_params:>12,}")
+                print(
+                    "Trainable     params:,"
+                    f"{count_numel(self.module.trainable_variables):>12}",
+                )
+                print(
+                    "Non-trainable params: "
+                    f"{count_numel(self.module.non_trainable_variables):>12,}",
+                )
 
-            self.optimizer.summary()
+            print(f"Optimizer: {self.optimizer}")
             with logging_indent("Objective:"):
                 for loss in self.losses:
                     print(loss)
 
 
+def count_numel(params) -> int:
+    return sum(p.numel() for p in params)
+
+
 class GeneratorUpdater(ModuleUpdater):
 
-    def build_graph(self, real_samples):
+    def update_step(self, real_samples):
         with reuse_method_call(
             self.generator,
             ['generate', 'teacher_forcing_generate'],
@@ -68,8 +59,18 @@ class GeneratorUpdater(ModuleUpdater):
                 for loss in self.losses
             )
 
-        self._build_train_op(loss_collection.total)
-        self._observables = loss_collection.observables
+        # TODO, tensor for checkpoint
+        self.step += 1
+        self.optimizer.zero_grad()
+        loss_collection.total.backward()
+        losses = {
+            key: tensor.detach().numpy()
+            for key, tensor in loss_collection.observables.items()
+        }
+        for subscriber in self._subscribers:
+            subscriber.update(self.step, losses)
+
+        self.optimizer.step()
 
     @property
     def generator(self) -> Generator:
@@ -78,7 +79,7 @@ class GeneratorUpdater(ModuleUpdater):
 
 class DiscriminatorUpdater(ModuleUpdater):
 
-    def build_graph(self, real_samples, fake_samples):
+    def update_step(self, real_samples, fake_samples):
         with reuse_method_call(
             self.discriminator,
             ['score_samples', 'score_word_vector', 'get_embedding'],
@@ -92,8 +93,18 @@ class DiscriminatorUpdater(ModuleUpdater):
                 for loss in self.losses
             )
 
-        self._build_train_op(loss_collection.total)
-        self._observables = loss_collection.observables
+        # TODO, tensor for checkpoint
+        self.step += 1
+        self.optimizer.zero_grad()
+        loss_collection.total.backward()
+        losses = {
+            key: tensor.detach().numpy()
+            for key, tensor in loss_collection.observables.items()
+        }
+        for subscriber in self._subscribers:
+            subscriber.update(self.step, losses)
+
+        self.optimizer.step()
 
     @property
     def discriminator(self) -> Discriminator:

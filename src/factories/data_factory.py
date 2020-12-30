@@ -90,7 +90,7 @@ ARGS = [
              f"(use the value declared in {format_path(CONFIG_PATH)} if not given)",
     ),
     create_action(
-        '--vocab_size',
+        '--vocab-size',
         type=IntRange(minval=1),
         help="the maximum number of tokens. ordered by descending frequency. "
              f"(use the value declared in {format_path(CONFIG_PATH)} if not given)",

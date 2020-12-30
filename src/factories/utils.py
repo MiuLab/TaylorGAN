@@ -1,22 +1,22 @@
 from typing import List
 
-from flexparse import ArgumentParser, create_action, Action, FactoryMethod
+from flexparse import ArgumentParser, create_action, Action
 
 
 def create_factory_action(
         *args,
-        registry: dict,
+        type: callable,  # noqa
         help_prefix: str = '',
         default=None,
-        return_info: bool = False,
         **kwargs,
     ) -> Action:
-    factory = FactoryMethod(registry, return_info=return_info)
     return create_action(
         *args,
-        type=factory,
+        type=type,
         default=default,
-        help=help_prefix + factory.get_registry_help(),
+        help=(
+            help_prefix + "custom options and registry: \n" + "\n".join(type.get_helps()) + "\n"
+        ),
         **kwargs,
     )
 

@@ -3,7 +3,9 @@ from more_itertools import ichunked
 from typing import Iterator
 
 import numpy as np
+import torch
 
+from core.models.sequence_modeling import TokenSequence
 from .updaters import GeneratorUpdater, DiscriminatorUpdater
 
 
@@ -20,9 +22,6 @@ class Trainer(abc.ABC):
     @property
     def updaters(self):
         return [self.generator_updater]
-
-    def build_graph(self, real_samples):
-        self.generator_updater.build_graph(real_samples)
 
     def summary(self):
         for updater in self.updaters:
@@ -54,21 +53,14 @@ class GANTrainer(Trainer):
     def fit(self, data_loader: Iterator[np.ndarray]):
         for chunk in ichunked(data_loader, n=self.d_steps):
             for batch_data in chunk:
-                self.discriminator_updater.update_step(
-                    feed_dict={self.placeholder: batch_data},
+                # TODO
+                real_samples = TokenSequence(
+                    torch.from_numpy(batch_data).type(torch.long),
+                    eos_idx=1,
                 )
-            self.generator_updater.update_step()
-
-    def build_graph(self, real_samples):
-        super().build_graph(real_samples)
-        fake_samples = self.generator_updater.generator.generate(
-            batch_size=real_samples.batch_size,
-            maxlen=real_samples.maxlen,
-        )
-        self.discriminator_updater.build_graph(
-            real_samples=real_samples,
-            fake_samples=fake_samples,
-        )
+                fake_samples = self.generator_updater.generator.generate(*batch_data.shape)
+                self.discriminator_updater.update_step(real_samples, fake_samples)
+            self.generator_updater.update_step(real_samples)
 
     @property
     def updaters(self):

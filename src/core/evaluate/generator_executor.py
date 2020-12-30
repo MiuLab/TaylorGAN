@@ -1,4 +1,3 @@
-import math
 from typing import List
 
 import numpy as np
@@ -12,18 +11,8 @@ from library.utils import batch_generator, cached_property
 class TextGenerator:
     '''Facade class of Generator model'''
 
-    _BATCH_KEY = 'batch_size'
-    _TEMP_KEY = 'temperature'
-    _OUTPUT_KEY = 'output'
-
-    def __init__(
-            self,
-            batch_size: tf.Tensor, temperature: tf.Tensor, output_ids: tf.Tensor,
-            tokenizer: Tokenizer,
-        ):
-        self._batch_size = batch_size
-        self._temperature = temperature
-        self._output_ids = output_ids
+    def __init__(self, generator, tokenizer: Tokenizer):
+        self.generator = generator
         self._tokenizer = tokenizer
 
     def generate_texts(self, size: int, batch_size: int = 64, temperature: float = 1.) -> List[str]:
@@ -33,44 +22,22 @@ class TextGenerator:
         ))
 
     def generate_ids(self, size: int, batch_size: int = 64, temperature: float = 1.) -> np.ndarray:
-        sess = tf.get_default_session()
-        feed_dict = {
-            self._batch_size: batch_size,
-            self._temperature: temperature,
-        }
         batch_list = [
-            sess.run(self._output_ids, feed_dict=feed_dict)
-            for _ in range(math.ceil(size / batch_size))
+            self.generator.generate(
+                min(size - start, batch_size),
+                self._tokenizer.maxlen,
+            ).ids.numpy()
+            for start in range(0, max(size - batch_size, 0) + 1, batch_size)
         ]
-        return np.concatenate(batch_list, axis=0)[: size]
+        return np.concatenate(batch_list, axis=0)
 
     def ids_to_text(self, word_ids):
         return self._tokenizer.ids_to_text(word_ids)
 
-    @cached_property
-    def signature(self):
-        return tf.saved_model.signature_def_utils.predict_signature_def(
-            inputs={self._BATCH_KEY: self._batch_size, self._TEMP_KEY: self._temperature},
-            outputs={self._OUTPUT_KEY: self._output_ids},
-        )
-
-    @classmethod
-    def from_signature(cls, signature, tokenizer):
-        get_tensor = tf.get_default_graph().get_tensor_by_name
-        return cls(
-            batch_size=get_tensor(signature.inputs[cls._BATCH_KEY].name),
-            temperature=get_tensor(signature.inputs[cls._TEMP_KEY].name),
-            output_ids=get_tensor(signature.outputs[cls._OUTPUT_KEY].name),
-            tokenizer=tokenizer,
-        )
-
     @classmethod
     def from_model(cls, generator, tokenizer):
         # static batch size -> build a dynamic one
-        batch_size = tf.placeholder_with_default(64, shape=(), name='batch_size_place')
-        temperature = tf.placeholder_with_default(1., shape=(), name='temperature_place')
-        output = generator.generate(batch_size, tokenizer.maxlen, temperature=temperature)
-        return cls(batch_size, temperature, output.ids, tokenizer)
+        return cls(generator, tokenizer)
 
 
 class PerplexityCalculator:

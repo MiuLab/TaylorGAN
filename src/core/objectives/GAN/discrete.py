@@ -1,4 +1,4 @@
-import tensorflow as tf
+import torch
 
 from library.tf_keras_zoo.functions import (
     compute_advantage,
@@ -17,6 +17,7 @@ class ReinforceEstimator(GANEstimator):
 
     def __init__(self, baseline_decay: float = 0.9):
         self.baseline_decay = baseline_decay
+        self.baseline = None
 
     def compute_loss(
             self,
@@ -26,11 +27,21 @@ class ReinforceEstimator(GANEstimator):
         ):
         score = discriminator.score_samples(fake_samples)
         adv_loss = generator_loss(score)
-        reward = -tf.squeeze(adv_loss, axis=1)  # shape (N, )
+        reward = adv_loss.squeeze(axis=1)  # shape (N, )
 
-        advantage = compute_advantage(reward, decay=self.baseline_decay)  # shape (N, )
-        policy_loss = tf.reduce_mean(tf.stop_gradient(advantage) * fake_samples.seq_neg_logprobs)
-        return LossCollection(policy_loss, adv=tf.reduce_mean(adv_loss))
+        advantage = self.compute_advantage(reward)  # shape (N, )
+        policy_loss = (advantage.detach() * fake_samples.seq_neg_logprobs).mean()
+        return LossCollection(policy_loss, adv=adv_loss.mean())
+
+    def compute_advantage(self, reward):
+        if self.baseline is None:
+            self.baseline = reward.mean()
+
+        advantage = reward - self.baseline
+        self.baseline = (
+            self.baseline * self.baseline_decay + reward.mean() * (1 - self.baseline_decay)
+        )
+        return advantage
 
 
 class TaylorEstimator(GANEstimator):
@@ -56,24 +67,23 @@ class TaylorEstimator(GANEstimator):
             xs=discriminator.embedding_matrix,
         )
         zeroth_order_advantage = compute_advantage(reward, decay=self.baseline_decay)
-        advantage = zeroth_order_advantage[:, :, tf.newaxis] + first_order_reward
+        advantage = zeroth_order_advantage.unsqueeze(dim=2) + first_order_reward
 
         square_dist = pairwise_euclidean(discriminator.embedding_matrix)
         kernel = gaussian(square_dist / (self.bandwidth ** 2))  # (V, V)
         batch_kernel = tf.nn.embedding_lookup(kernel, fake_samples.ids)  # shape (N, T, V)
-        likelihood = tf.tensordot(fake_samples.probs, kernel, axes=[2, 0])
+        likelihood = torch.tensordot(fake_samples.probs, kernel, axes=[2, 0])
 
-        normalized_advantage = batch_kernel * advantage / (likelihood + tf.keras.backend.epsilon())
-        full_loss = -tf.stop_gradient(normalized_advantage) * fake_samples.probs
+        normalized_advantage = batch_kernel * advantage / (likelihood + 1e-8)
+        full_loss = -normalized_advantage.detach() * fake_samples.probs
         policy_loss = masked_reduce(full_loss, mask=fake_samples.mask)
-        return LossCollection(policy_loss, adv=tf.reduce_mean(adv_loss))
+        return LossCollection(policy_loss, adv=adv_loss.mean())
 
     @staticmethod
     def taylor_first_order(y, x0, xs):
         dy, = tf.gradients(y, x0)  # (N, T, E)
         return (
-            tf.tensordot(dy, xs, axes=[-1, -1])  # (N, T, V)
-            - tf.reduce_sum(dy * x0, axis=-1, keepdims=True)  # (N, T, 1)
+            torch.tensordot(dy, xs, axes=[-1, -1]) - (dy * x0).sum(-1).unsqueeze(dim=2)
         )
 
 

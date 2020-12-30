@@ -1,4 +1,7 @@
-import tensorflow as tf
+from functools import partial
+
+import torch
+from torch.nn import Embedding, GRUCell, Linear, Sequential
 
 from core.models import Generator, AutoRegressiveGenerator
 from core.objectives.regularizers import (
@@ -6,67 +9,50 @@ from core.objectives.regularizers import (
     EmbeddingRegularizer,
     EntropyRegularizer,
 )
-from flexparse import create_action, FactoryMethod, Namespace
-from library.tf_keras_zoo.layers import Dense, Embedding, GRUCell, StackedRNNCells
-from library.tf_keras_zoo.layers.embeddings import OutputEmbedding
-from library.tf_keras_zoo.layers.recurrent import SkipConnectCells
-from library.tf_keras_zoo.networks import Sequential
+from flexparse import create_action, Namespace, LookUpCall
 
 from ..utils import create_factory_action
 
 
 def create(args: Namespace, meta_data) -> Generator:
-    (cell, info), fix_embeddings, tie_embeddings = args[MODEL_ARGS]
-    print(f"Create generator: {info.arg_string}")
+    cell_func, fix_embeddings, tie_embeddings = args[MODEL_ARGS]
+    print(f"Create generator: {cell_func.argument_info.arg_string}")
 
-    embedding_matrix = meta_data.load_pretrained_embeddings()
-    embedder = Embedding.from_weights(embedding_matrix, trainable=not fix_embeddings)
+    embedding_matrix = torch.from_numpy(meta_data.load_pretrained_embeddings())
+    embedder = Embedding.from_pretrained(embedding_matrix, freeze=fix_embeddings)
+    presoftmax_layer = Linear(embedder.embedding_dim, embedder.num_embeddings)
     if tie_embeddings:
-        presoftmax_layer = OutputEmbedding(embedder, use_bias=True, name='pre_softmax')
+        presoftmax_layer.weight = embedder.weight
     else:
-        presoftmax_layer = Dense(
-            embedder.vocab_size,
-            kernel_initializer=tf.constant_initializer(embedding_matrix.T),
-            use_bias=True,
-            name='pre_softmax',
-        )
+        presoftmax_layer.weight.data.copy_(embedder.weight)
 
+    cell = cell_func(input_size=embedder.embedding_dim)
     return AutoRegressiveGenerator(
         cell=cell,
         embedder=embedder,
-        output_layer=Sequential([
-            Dense(units=embedder.total_dim, name='projection', use_bias=False),
+        output_layer=Sequential(
+            Linear(cell.hidden_size, embedder.embedding_dim, bias=False),
             presoftmax_layer,
-        ]),
+        ),
         special_token_config=meta_data.special_token_config,
-        name=info.func_name,
+        name=cell_func.argument_info.func_name,
     )
 
 
-def gru_cell(units: int = 1024, layers: int = 1, merge_mode: str = None):
-    cells = [
-        GRUCell(
-            units=units,
-            recurrent_activation='sigmoid',
-            reset_after=True,
-            implementation=2,
-        )
-        for _ in range(layers)
-    ]
-    if len(cells) == 1:
-        return cells[0]
-    elif merge_mode:
-        return SkipConnectCells(cells, merge_mode=merge_mode)
-    else:
-        return StackedRNNCells(cells)
+def gru_cell(units: int = 1024):
+    return partial(GRUCell, hidden_size=units)
 
 
 MODEL_ARGS = [
     create_factory_action(
         '-g', '--generator',
-        dest='g_cell',
-        registry={'gru': gru_cell, 'test': lambda: GRUCell(units=10)},
-        return_info=True,
+        type=LookUpCall(
+            {
+                'gru': gru_cell,
+                'test': lambda: partial(GRUCell, hidden_size=10),
+            },
+            set_info=True,
+        ),
         default='gru',
     ),
     create_action(
@@ -83,12 +69,12 @@ MODEL_ARGS = [
 
 REGULARIZER_ARG = create_factory_action(
     '--g-regularizers',
-    registry={
+    type=LookUpCall({
         'spectral': SpectralRegularizer,
         'embedding': EmbeddingRegularizer,
         'entropy': EntropyRegularizer,
-    },
+    }),
     nargs='+',
-    metavar=f"REGULARIZER(*args{FactoryMethod.COMMA}**kwargs)",
+    metavar="REGULARIZER(*args, **kwargs)",
     default=[],
 )

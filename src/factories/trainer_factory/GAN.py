@@ -1,5 +1,6 @@
-import tensorflow as tf
+import torch
 
+from core.models import Discriminator
 from core.objectives.GAN import (
     BCE,
     GANObjective,
@@ -11,7 +12,7 @@ from core.objectives.GAN import (
 )
 from core.train import DiscriminatorUpdater, GANTrainer
 from factories.modules import discriminator_factory
-from flexparse import create_action, LookUp, IntRange
+from flexparse import create_action, LookUp, LookUpCall, IntRange
 from library.utils import cached_property
 
 from ..utils import create_factory_action
@@ -36,7 +37,7 @@ class GANCreator(TrainerCreator):
     def create_discriminator_updater(self, discriminator, discriminator_loss):
         return DiscriminatorUpdater(
             discriminator,
-            optimizer=self.args[D_OPTIMIZER_ARG],
+            optimizer=self.args[D_OPTIMIZER_ARG](discriminator.trainable_variables),
             losses=[
                 discriminator_loss,
                 *self.args[discriminator_factory.REGULARIZER_ARG],
@@ -53,7 +54,7 @@ class GANCreator(TrainerCreator):
         )
 
     @cached_property
-    def _discriminator(self):
+    def _discriminator(self) -> Discriminator:
         return discriminator_factory.create(self.args, self.meta_data)
 
     @classmethod
@@ -80,7 +81,7 @@ GAN_ARGS = [
         type=LookUp({
             'alt': GANLossTuple(lambda fake_score: BCE(fake_score, labels=1.)),  # RKL - 2JS
             'JS': GANLossTuple(lambda fake_score: -BCE(fake_score, labels=0.)),  # 2JS
-            'KL': GANLossTuple(lambda fake_score: -tf.exp(fake_score)),  # -sig / (1 - sig)
+            'KL': GANLossTuple(lambda fake_score: -torch.exp(fake_score)),  # -sig / (1 - sig)
             'RKL': GANLossTuple(lambda fake_score: -fake_score),  # log((1 - sig) / sig)
         }),
         default='RKL',
@@ -88,12 +89,12 @@ GAN_ARGS = [
     ),
     create_factory_action(
         '--estimator',
-        registry={
+        type=LookUpCall({
             'reinforce': ReinforceEstimator,
             'st': StraightThroughEstimator,
             'taylor': TaylorEstimator,
             'gumbel': GumbelSoftmaxEstimator,
-        },
+        }),
         default='taylor',
         help_prefix="gradient estimator for discrete sampling.\n",
     ),

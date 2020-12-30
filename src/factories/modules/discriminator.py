@@ -1,7 +1,8 @@
 from functools import partial
 
 import tensorflow as tf
-
+import torch
+from torch.nn import Embedding, Sequential
 
 from core.models import Discriminator
 from core.objectives.regularizers import (
@@ -10,27 +11,27 @@ from core.objectives.regularizers import (
     GradientPenaltyRegularizer,
     WordVectorRegularizer,
 )
-from flexparse import create_action, FactoryMethod, Namespace
-from library.tf_keras_zoo.layers import Dense, Embedding
+from flexparse import create_action, Namespace, LookUpCall
+from library.tf_keras_zoo.layers import Dense
 from library.tf_keras_zoo.layers.masking import (
     MaskConv1D, MaskAvgPool1D, MaskMaxPool1D, MaskGlobalAvgPool1D,
 )
 from library.tf_keras_zoo.layers.resnet import ResBlock
-from library.tf_keras_zoo.networks import Sequential
+from library.torch_zoo.layers import GlobalAvgPool1D
 
 from ..utils import create_factory_action
 
 
 def create(args: Namespace, meta_data) -> Discriminator:
-    (network, info), fix_embeddings = args[MODEL_ARGS]
-    print(f"Create discriminator: {info.arg_string}")
+    network, fix_embeddings = args[MODEL_ARGS]
+    print(f"Create discriminator: {network.argument_info.arg_string}")
     return Discriminator(
         network=network,
-        embedder=Embedding.from_weights(
-            weights=meta_data.load_pretrained_embeddings(),
-            trainable=not fix_embeddings,
+        embedder=Embedding.from_pretrained(
+            torch.from_numpy(meta_data.load_pretrained_embeddings()),
+            freeze=fix_embeddings,
         ),
-        name=info.func_name,
+        name=network.argument_info.func_name,
     )
 
 
@@ -70,14 +71,15 @@ def resnet(activation: str = 'relu'):
 MODEL_ARGS = [
     create_factory_action(
         '-d', '--discriminator',
-        registry={
-            'cnn': cnn,
-            'resnet': resnet,
-            'test': lambda: Sequential([Dense(10), MaskGlobalAvgPool1D()]),
-        },
-        dest='d_network',
+        type=LookUpCall(
+            {
+                'cnn': cnn,
+                'resnet': resnet,
+                'test': lambda: GlobalAvgPool1D(dim=1),
+            },
+            set_info=True,
+        ),
         default='cnn(activation=elu)',
-        return_info=True,
     ),
     create_action(
         '--d-fix-embeddings',
@@ -88,13 +90,13 @@ MODEL_ARGS = [
 
 REGULARIZER_ARG = create_factory_action(
     '--d-regularizers',
-    registry={
+    type=LookUpCall({
         'spectral': SpectralRegularizer,
         'embedding': EmbeddingRegularizer,
         'grad_penalty': GradientPenaltyRegularizer,
         'word_vec': WordVectorRegularizer,
-    },
+    }),
     nargs='+',
-    metavar=f"REGULARIZER(*args{FactoryMethod.COMMA}**kwargs)",
+    metavar="REGULARIZER(*args, **kwargs)",
     default=[],
 )

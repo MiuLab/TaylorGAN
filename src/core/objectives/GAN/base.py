@@ -2,7 +2,7 @@ import abc
 
 from typing import Callable
 
-import tensorflow as tf
+import torch
 
 from core.objectives.collections import LossCollection
 from library.utils import FormatableMixin
@@ -38,8 +38,8 @@ class GANLossTuple:
 
     def __init__(
             self,
-            generator_loss: Callable[[tf.Tensor], tf.Tensor],
-            discriminator_loss: Callable[[tf.Tensor, tf.Tensor], tf.Tensor] = None,
+            generator_loss: Callable[[torch.Tensor], torch.Tensor],
+            discriminator_loss: Callable[[torch.Tensor, torch.Tensor], torch.Tensor] = None,
         ):
         self.generator_loss = generator_loss
         self._discriminator_loss = discriminator_loss or D_BCE
@@ -55,11 +55,11 @@ class GANLossTuple:
 def D_BCE(real_score, fake_score):
     loss_real = BCE(real_score, labels=1.)
     loss_fake = BCE(fake_score, labels=0.)
-    return tf.reduce_mean(loss_real + loss_fake)
+    return (loss_real + loss_fake).mean()
 
 
-def BCE(score, labels):
-    return tf.nn.sigmoid_cross_entropy_with_logits(
-        logits=score,
-        labels=tf.fill(score.shape, value=labels),
+def BCE(score, labels) -> torch.Tensor:
+    return torch.nn.functional.binary_cross_entropy_with_logits(
+        score,
+        target=torch.full_like(score, labels),
     )
