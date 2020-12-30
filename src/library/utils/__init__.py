@@ -8,7 +8,7 @@ from .cache_utils import (
     JSONCache,
     reuse_method_call,
 )
-from .collections import counter_or, counter_ior, dict_of_unique, ExponentialMovingAverageMeter
+from .collections import counter_or, counter_ior, ExponentialMovingAverageMeter
 from .file_helper import count_lines
 from .format_utils import (
     format_highlight,
@@ -21,9 +21,6 @@ from .format_utils import (
     join_arg_string,
     left_aligned,
 )
-from .func_utils import (
-    match_abbrev, get_args, log_args_when_error, ObjectWrapper, extract_wrapped,
-    ArgumentBinder,
-)
+from .func_utils import ObjectWrapper, ArgumentBinder, wraps_with_new_signature
 from .iterator import batch_generator, tqdm_open
 from .logging import logging_indent, SEPARATION_LINE, TqdmRedirector

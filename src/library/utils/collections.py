@@ -14,15 +14,6 @@ def counter_ior(a: Dict[Any, int], b: Dict[Any, int]):
     return a
 
 
-def dict_of_unique(items):
-    output = {}
-    for key, val in items:
-        if key in output:
-            raise ValueError(f"{key} conflict!")
-        output[key] = val
-    return output
-
-
 class ExponentialMovingAverageMeter:
 
     def __init__(self, decay: float = 0.9):
