@@ -1,4 +1,4 @@
-import tensorflow as tf
+import torch
 
 from core.models import ModuleInterface
 from .base import Regularizer, LossCollection
@@ -22,10 +22,10 @@ class EmbeddingRegularizer(VariableRegularizer):
         self.max_norm = max_norm
 
     def compute_loss(self, module: ModuleInterface):
-        embedding_L2_loss = tf.reduce_sum(tf.square(module.embedding_matrix), axis=1)  # shape (V, )
+        embedding_L2_loss = torch.square(module.embedding_matrix).sum(dim=1)  # shape (V, )
         if self.max_norm:
-            embedding_L2_loss = tf.maximum(embedding_L2_loss - self.max_norm ** 2, 0)
-        return tf.reduce_mean(embedding_L2_loss) / 2  # shape ()
+            embedding_L2_loss = torch.maximum(embedding_L2_loss - self.max_norm ** 2, 0)
+        return embedding_L2_loss.mean() / 2  # shape ()
 
 
 class SpectralRegularizer(VariableRegularizer):
@@ -39,19 +39,20 @@ class SpectralRegularizer(VariableRegularizer):
             module.trainable_variables,
         ):
             sn, update = self._get_spectral_norm(kernel)
-            spectral_L2_list.append(tf.square(sn))
+            spectral_L2_list.append(sn ** 2)
             update_list.append(update)
 
         with tf.control_dependencies(update_list):
-            spectral_L2_sum = tf.add_n(spectral_L2_list)
+            spectral_L2_sum = torch.sum(spectral_L2_list)
 
         return spectral_L2_sum / 2
 
-    def _get_spectral_norm(self, kernel: tf.Variable):
-        if kernel.shape.ndims > 2:
-            kernel_matrix = tf.reshape(kernel, [-1, kernel.shape[-1].value])
+    def _get_spectral_norm(self, kernel: torch.nn.Parameter):
+        if kernel.ndim > 2:
+            kernel_matrix = kernel.view(-1, kernel.shape[-1])
         else:
             kernel_matrix = kernel  # shape (U, V)
+
         u = tf.get_variable(
             name=f'{kernel.op.name}/left_singular_vector',
             shape=(kernel_matrix.shape[0].value, ),
