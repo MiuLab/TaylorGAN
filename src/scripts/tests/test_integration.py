@@ -41,9 +41,9 @@ class TestTrain:
         sys.argv = ' '.join([
             'scripts/train/GAN.py --data test',
             '-g test -d test --estimator taylor',
-            '--g-op sgd(1e-3,clip_value=0.1)',
+            '--g-op sgd(1e-3,clip_norm=1)',
             '--g-reg embedding(0.1) entropy(1e-5)',
-            '--d-op sgd(1e-3,clip_global_norm=1)',
+            '--d-op sgd(1e-3,clip_norm=1)',
             '--d-reg grad_penalty(10.) spectral(0.1) embedding(0.1)',
             '--epochs 4 --batch 2',
             '--bleu 2',
