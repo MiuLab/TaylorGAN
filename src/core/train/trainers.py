@@ -32,9 +32,11 @@ class NonParametrizedTrainer(Trainer):
 
     def fit(self, data_loader: Iterator[np.ndarray]):
         for batch_data in data_loader:
-            self.generator_updater.update_step(
-                feed_dict={self.placeholder: batch_data},
+            real_samples = TokenSequence(
+                torch.from_numpy(batch_data).type(torch.long),
+                eos_idx=1,
             )
+            self.generator_updater.update_step(real_samples)
 
 
 class GANTrainer(Trainer):
