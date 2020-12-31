@@ -1,7 +1,5 @@
 import abc
 
-import tensorflow as tf
-
 from core.models import Generator
 from core.train import GeneratorUpdater, Trainer
 from factories.modules import generator_factory
@@ -12,15 +10,12 @@ from . import optimizers
 
 def create(args, meta_data, generator: Generator) -> Trainer:
     creator = args.creator_cls(args, meta_data, generator)
-
-    placeholder = tf.placeholder(tf.int32, shape=[args.batch_size, meta_data.maxlen])
     generator_updater = GeneratorUpdater(
         generator,
         optimizer=args[G_OPTIMIZER_ARG](generator.trainable_variables),
         losses=[creator.objective] + args[generator_factory.REGULARIZER_ARG],
     )
-    trainer = creator.create_trainer(placeholder, generator_updater)
-    return trainer
+    return creator.create_trainer(generator_updater)
 
 
 G_OPTIMIZER_ARG = optimizers.create_action_of('generator')
@@ -65,7 +60,7 @@ class TrainerCreator(abc.ABC):
         self.generator = generator
 
     @abc.abstractmethod
-    def create_trainer(self, placeholder, generator_updater) -> Trainer:
+    def create_trainer(self, generator_updater) -> Trainer:
         pass
 
     @property

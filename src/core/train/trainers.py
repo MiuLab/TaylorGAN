@@ -11,8 +11,7 @@ from .updaters import GeneratorUpdater, DiscriminatorUpdater
 
 class Trainer(abc.ABC):
 
-    def __init__(self, placeholder, generator_updater: GeneratorUpdater):
-        self.placeholder = placeholder
+    def __init__(self, generator_updater: GeneratorUpdater):
         self.generator_updater = generator_updater
 
     @abc.abstractmethod
@@ -43,12 +42,11 @@ class GANTrainer(Trainer):
 
     def __init__(
             self,
-            placeholder,
             generator_updater: GeneratorUpdater,
             discriminator_updater: DiscriminatorUpdater,
             d_steps: int = 1,
         ):
-        super().__init__(placeholder, generator_updater)
+        super().__init__(generator_updater)
         self.discriminator_updater = discriminator_updater
         self.d_steps = d_steps
 
