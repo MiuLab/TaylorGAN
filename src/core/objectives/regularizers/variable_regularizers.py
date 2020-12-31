@@ -1,4 +1,6 @@
-import tensorflow as tf
+from functools import lru_cache
+
+import torch
 
 from core.models import ModuleInterface
 from .base import Regularizer, LossCollection
@@ -22,10 +24,10 @@ class EmbeddingRegularizer(VariableRegularizer):
         self.max_norm = max_norm
 
     def compute_loss(self, module: ModuleInterface):
-        embedding_L2_loss = tf.reduce_sum(tf.square(module.embedding_matrix), axis=1)  # shape (V, )
+        embedding_L2_loss = torch.square(module.embedding_matrix).sum(dim=1)  # shape (V, )
         if self.max_norm:
-            embedding_L2_loss = tf.maximum(embedding_L2_loss - self.max_norm ** 2, 0)
-        return tf.reduce_mean(embedding_L2_loss) / 2  # shape ()
+            embedding_L2_loss = torch.maximum(embedding_L2_loss - self.max_norm ** 2, 0)
+        return embedding_L2_loss.mean() / 2  # shape ()
 
 
 class SpectralRegularizer(VariableRegularizer):
@@ -33,38 +35,31 @@ class SpectralRegularizer(VariableRegularizer):
     loss_name = 'spectral'
 
     def compute_loss(self, module: ModuleInterface):
-        spectral_L2_list, update_list = [], []
-        for kernel in filter(
-            lambda v: 'kernel' in v.name and v.shape.ndims >= 2,
-            module.trainable_variables,
-        ):
-            sn, update = self._get_spectral_norm(kernel)
-            spectral_L2_list.append(tf.square(sn))
-            update_list.append(update)
+        loss = 0
+        for module in module.modules():
+            weight = getattr(module, 'weight', None)
+            if weight is None:
+                continue
+            sn, u, new_u = self._get_spectral_norm(weight)
+            loss += (sn ** 2) / 2
+            u.copy_(new_u)
 
-        with tf.control_dependencies(update_list):
-            spectral_L2_sum = tf.add_n(spectral_L2_list)
+        return loss
 
-        return spectral_L2_sum / 2
-
-    def _get_spectral_norm(self, kernel: tf.Variable):
-        if kernel.shape.ndims > 2:
-            kernel_matrix = tf.reshape(kernel, [-1, kernel.shape[-1].value])
+    def _get_spectral_norm(self, weight: torch.nn.Parameter):
+        u = get_u(weight)  # shape (U)
+        if weight.ndim > 2:
+            weight_matrix = weight.view(weight.shape[0], -1)
         else:
-            kernel_matrix = kernel  # shape (U, V)
-        u = tf.get_variable(
-            name=f'{kernel.op.name}/left_singular_vector',
-            shape=(kernel_matrix.shape[0].value, ),
-            initializer=tf.keras.initializers.lecun_normal(),  # unit vector
-            trainable=False,
-            dtype=kernel_matrix.dtype,
-        )  # shape (U)
-        v = tf.stop_gradient(
-            tf.nn.l2_normalize(tf.linalg.matvec(kernel_matrix, u, transpose_a=True)),
-        )  # shape (V)
-        Wv = tf.linalg.matvec(kernel_matrix, v)  # shape (U)
-        new_u = tf.stop_gradient(tf.nn.l2_normalize(Wv))  # shape (U)
+            weight_matrix = weight  # shape (U, V)
 
-        spectral_norm = tf.tensordot(new_u, Wv, axes=1)
-        update_u = tf.assign(u, new_u)
-        return spectral_norm, update_u
+        v = torch.nn.functional.normalize(torch.mv(weight_matrix.t(), u), dim=0).detach()
+        Wv = torch.mv(weight_matrix, v)  # shape (U)
+        new_u = torch.nn.functional.normalize(Wv, dim=0).detach()  # shape (U)
+        spectral_norm = torch.tensordot(new_u, Wv, dims=1)
+        return spectral_norm, u, new_u
+
+
+@lru_cache(None)
+def get_u(kernel):
+    return kernel.new_empty(kernel.shape[0]).normal_().detach()

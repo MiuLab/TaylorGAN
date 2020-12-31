@@ -1,4 +1,4 @@
-import tensorflow as tf
+import torch
 
 from core.objectives.collections import LossCollection
 
@@ -22,18 +22,13 @@ class GumbelSoftmaxEstimator(GANEstimator):
         return _compute_loss_of_probability(
             discriminator,
             generator_loss,
-            probs=tf.nn.softmax(fake_samples.logits + fake_samples.gumbel_vars),
+            probs=torch.nn.functional.softmax(fake_samples.logits + fake_samples.gumbel_vars),
             mask=fake_samples.mask,
         )
 
 
 def _compute_loss_of_probability(discriminator, generator_loss, probs, mask):
-    if not discriminator.embedder.built:
-        with tf.keras.backend.name_scope(discriminator.scope):
-            discriminator.embedder.build(probs.shape[:2])
-        assert discriminator.embedder.built
-
-    word_vecs = tf.tensordot(probs, discriminator.embedding_matrix, axes=[-1, 0])  # (N, T, E)
+    word_vecs = torch.tensordot(probs, discriminator.embedding_matrix, dims=1)  # (N, T, E)
     score = discriminator.score_word_vector(word_vecs, mask)
-    adv_loss = tf.reduce_mean(generator_loss(score))
+    adv_loss = generator_loss(score).mean()
     return LossCollection(adv_loss, adv=adv_loss)

@@ -54,7 +54,7 @@ class SampledTokenSequence(TokenSequence):
 
     @cached_property
     def probs(self) -> torch.Tensor:
-        return torch.nn.softmax(self.logits, dim=-1)
+        return torch.nn.functional.softmax(self.logits, dim=-1)
 
     @cached_property
     def neg_logprobs(self) -> torch.Tensor:
