@@ -1,5 +1,4 @@
 import abc
-from more_itertools import ichunked
 from typing import Iterator
 
 import numpy as np
@@ -51,16 +50,17 @@ class GANTrainer(Trainer):
         self.d_steps = d_steps
 
     def fit(self, data_loader: Iterator[np.ndarray]):
-        for chunk in ichunked(data_loader, n=self.d_steps):
-            for batch_data in chunk:
-                # TODO
-                real_samples = TokenSequence(
-                    torch.from_numpy(batch_data).type(torch.long),
-                    eos_idx=1,
-                )
-                fake_samples = self.generator_updater.generator.generate(*batch_data.shape)
-                self.discriminator_updater.update_step(real_samples, fake_samples)
-            self.generator_updater.update_step(real_samples)
+        for batch_data in data_loader:
+            real_samples = TokenSequence(
+                torch.from_numpy(batch_data).type(torch.long),
+                eos_idx=1,
+            )
+            self.discriminator_updater.update_step(
+                real_samples=real_samples,
+                fake_samples=self.generator_updater.generator.generate(*batch_data.shape),
+            )
+            if self.discriminator_updater.step % self.d_steps == 0:
+                self.generator_updater.update_step(real_samples)
 
     @property
     def updaters(self):
