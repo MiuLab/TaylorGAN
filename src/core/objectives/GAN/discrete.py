@@ -57,11 +57,13 @@ class TaylorEstimator(GANEstimator):
         adv_loss = generator_loss(score)
         reward = -adv_loss
 
+        N, T, E = fake_embeddings.shape
+
         first_order_reward = self.taylor_first_order(
             y=reward,
             x0=fake_embeddings,
             xs=discriminator.embedding_matrix,
-        )
+        ).view(N, T, E)
         zeroth_order_advantage = self.compute_advantage(reward)
         advantage = zeroth_order_advantage.unsqueeze(dim=2) + first_order_reward
 
@@ -77,9 +79,20 @@ class TaylorEstimator(GANEstimator):
 
     @staticmethod
     def taylor_first_order(y, x0, xs):
-        dy, = torch.autograd.grad(y, x0, grad_outputs=torch.ones_like(y))  # (N, T, E)
+        """
+        Args:
+            y: any shape computed by x0
+            x0: shape (*M, d)
+            xs: shape (N, d)
+
+        Returns:
+            dy: shape (*M, N)
+        """
+        dydx0, = torch.autograd.grad(y, x0, grad_outputs=torch.ones_like(y))  # (*M, d)
+        # dydx0 * (xs - x0) = dydx0 * xs - dydx0 * x0
         return (
-            torch.tensordot(dy, xs, dims=[[-1], [-1]]) - (dy * x0).sum(-1).unsqueeze(dim=2)
+            torch.tensordot(dydx0, xs, dims=[[-1], [-1]])  # (*M, N)
+            - (dydx0 * x0).sum(dim=-1, keepdim=True)  # (*M, 1)
         )
 
     def compute_advantage(self, reward):

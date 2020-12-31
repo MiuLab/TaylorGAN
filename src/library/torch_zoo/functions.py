@@ -39,7 +39,7 @@ def random_choice_by_logits(logits, return_gumbel: bool = False, eps: float = 1e
 
 def pairwise_euclidean(embeddings):
     square_term = torch.sum(embeddings ** 2, dim=-1)  # (V, )
-    dot_term = torch.matmul(embeddings, embeddings.T)  # (V, V)
+    dot_term = torch.tensordot(embeddings, embeddings, dims=[[1], [1]])  # (V, V)
     return square_term.unsqueeze(dim=1) - 2 * dot_term + square_term.unsqueeze(dim=0)  # (V, V)
 
 
