@@ -22,10 +22,9 @@ from . import optimizers
 
 class GANCreator(TrainerCreator):
 
-    def create_trainer(self, placeholder, generator_updater) -> GANTrainer:
+    def create_trainer(self, generator_updater) -> GANTrainer:
         loss_tuple, _, d_steps = self.args[GAN_ARGS]
         return GANTrainer(
-            placeholder=placeholder,
             generator_updater=generator_updater,
             discriminator_updater=self.create_discriminator_updater(
                 self._discriminator,
