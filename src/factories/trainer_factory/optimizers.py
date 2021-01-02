@@ -29,7 +29,9 @@ def wrap_optimizer(optimizer_func):
 
     @wraps_with_new_signature(optimizer_func)
     def wrapper(*args, clip_norm=0, **kwargs):
-        optimizer = optimizer_func(*args, **kwargs)
-        return OptimizerWrapper(optimizer, clip_norm=clip_norm)
+        return OptimizerWrapper(
+            optimizer=optimizer_func(*args, **kwargs),
+            clip_norm=clip_norm,
+        )
 
     return wrapper

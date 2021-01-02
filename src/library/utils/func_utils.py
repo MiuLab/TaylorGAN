@@ -1,14 +1,15 @@
 import inspect
 from functools import WRAPPER_ASSIGNMENTS, WRAPPER_UPDATES, update_wrapper
+from itertools import chain
 
 
 class ObjectWrapper:
 
-    def __init__(self, body):
-        self._body = body
+    def __init__(self, wrapped):
+        self._wrapped = wrapped
 
     def __getattr__(self, name):
-        return getattr(self._body, name)
+        return getattr(self._wrapped, name)
 
 
 class ArgumentBinder:
@@ -48,7 +49,11 @@ def wraps_with_new_signature(wrapped, assigned=WRAPPER_ASSIGNMENTS, updated=WRAP
             for p in inspect.signature(wrapper, follow_wrapped=False).parameters.values()
             if p.kind not in (inspect.Parameter.VAR_KEYWORD, inspect.Parameter.VAR_POSITIONAL)
         ]
-        new_sig = old_sig.replace(parameters=[*old_sig.parameters.values(), *add_params])
+        joined_parameters = sorted(
+            chain(add_params, old_sig.parameters.values()),
+            key=lambda p: p.kind,
+        )
+        new_sig = old_sig.replace(parameters=joined_parameters)
         wrapper.__signature__ = new_sig
         return wrapper
 
