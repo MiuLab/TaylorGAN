@@ -2,12 +2,12 @@ from itertools import chain
 
 import torch
 
-from library.utils import format_object, ObjectWrapper
+from library.utils import format_object, ObjectWrapper, wraps_with_new_signature
 
 
 class OptimizerWrapper(ObjectWrapper):
 
-    def __init__(self, optimizer, clip_norm):
+    def __init__(self, optimizer, clip_norm: float = 0):
         super().__init__(optimizer)
         self.optimizer = optimizer
         self.clip_norm = clip_norm
@@ -33,3 +33,15 @@ class OptimizerWrapper(ObjectWrapper):
             kwargs['clip_norm'] = self.clip_norm
 
         return format_object(self.optimizer, **kwargs)
+
+    @classmethod
+    def as_constructor(cls, optimizer_cls):
+
+        @wraps_with_new_signature(optimizer_cls)
+        def wrapper(*args, clip_norm=0, **kwargs):
+            return cls(
+                optimizer=optimizer_cls(*args, **kwargs),
+                clip_norm=clip_norm,
+            )
+
+        return wrapper

@@ -50,8 +50,8 @@ def wraps_with_new_signature(wrapped, assigned=WRAPPER_ASSIGNMENTS, updated=WRAP
             if p.kind not in (inspect.Parameter.VAR_KEYWORD, inspect.Parameter.VAR_POSITIONAL)
         ]
         joined_parameters = sorted(
-            chain(add_params, old_sig.parameters.values()),
-            key=lambda p: p.kind,
+            chain(old_sig.parameters.values(), add_params),
+            key=lambda p: (p.kind, p.default != p.empty),  # empty first
         )
         new_sig = old_sig.replace(parameters=joined_parameters)
         wrapper.__signature__ = new_sig

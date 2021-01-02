@@ -6,6 +6,7 @@ from torch.nn import Embedding, Sequential
 
 from core.models import Discriminator
 from core.objectives.regularizers import (
+    LossScaler,
     SpectralRegularizer,
     EmbeddingRegularizer,
     GradientPenaltyRegularizer,
@@ -20,7 +21,6 @@ from library.tf_keras_zoo.layers.resnet import ResBlock
 from library.torch_zoo.layers import GlobalAvgPool1D
 
 from ..utils import create_factory_action
-from .regularizers import wrap_regularizer
 
 
 def create(args: Namespace, meta_data) -> Discriminator:
@@ -92,10 +92,10 @@ MODEL_ARGS = [
 REGULARIZER_ARG = create_factory_action(
     '--d-regularizers',
     type=LookUpCall({
-        'spectral': wrap_regularizer(SpectralRegularizer),
-        'embedding': wrap_regularizer(EmbeddingRegularizer),
-        'grad_penalty': wrap_regularizer(GradientPenaltyRegularizer),
-        'word_vec': wrap_regularizer(WordVectorRegularizer),
+        'spectral': LossScaler.as_constructor(SpectralRegularizer),
+        'embedding': LossScaler.as_constructor(EmbeddingRegularizer),
+        'grad_penalty': LossScaler.as_constructor(GradientPenaltyRegularizer),
+        'word_vec': LossScaler.as_constructor(WordVectorRegularizer),
     }),
     nargs='+',
     metavar="REGULARIZER(*args, **kwargs)",

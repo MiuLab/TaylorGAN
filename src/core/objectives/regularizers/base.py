@@ -2,7 +2,7 @@ import abc
 
 import torch
 
-from library.utils import FormatableMixin, ObjectWrapper
+from library.utils import FormatableMixin, ObjectWrapper, wraps_with_new_signature
 
 from ..collections import LossCollection
 
@@ -34,3 +34,15 @@ class LossScaler(ObjectWrapper):
             loss, observables = loss
 
         return LossCollection(self.coeff * loss, **observables)
+
+    @classmethod
+    def as_constructor(cls, regularizer_cls):
+
+        @wraps_with_new_signature(regularizer_cls)
+        def wrapper(coeff, *args, **kwargs):
+            return cls(
+                regularizer=regularizer_cls(*args, **kwargs),
+                coeff=coeff,
+            )
+
+        return wrapper
