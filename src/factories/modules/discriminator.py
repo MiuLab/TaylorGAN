@@ -20,6 +20,7 @@ from library.tf_keras_zoo.layers.resnet import ResBlock
 from library.torch_zoo.layers import GlobalAvgPool1D
 
 from ..utils import create_factory_action
+from .regularizers import wrap_regularizer
 
 
 def create(args: Namespace, meta_data) -> Discriminator:
@@ -91,10 +92,10 @@ MODEL_ARGS = [
 REGULARIZER_ARG = create_factory_action(
     '--d-regularizers',
     type=LookUpCall({
-        'spectral': SpectralRegularizer,
-        'embedding': EmbeddingRegularizer,
-        'grad_penalty': GradientPenaltyRegularizer,
-        'word_vec': WordVectorRegularizer,
+        'spectral': wrap_regularizer(SpectralRegularizer),
+        'embedding': wrap_regularizer(EmbeddingRegularizer),
+        'grad_penalty': wrap_regularizer(GradientPenaltyRegularizer),
+        'word_vec': wrap_regularizer(WordVectorRegularizer),
     }),
     nargs='+',
     metavar="REGULARIZER(*args, **kwargs)",

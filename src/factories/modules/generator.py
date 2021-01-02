@@ -12,6 +12,7 @@ from core.objectives.regularizers import (
 from flexparse import create_action, Namespace, LookUpCall
 
 from ..utils import create_factory_action
+from .regularizers import wrap_regularizer
 
 
 def create(args: Namespace, meta_data) -> Generator:
@@ -70,9 +71,9 @@ MODEL_ARGS = [
 REGULARIZER_ARG = create_factory_action(
     '--g-regularizers',
     type=LookUpCall({
-        'spectral': SpectralRegularizer,
-        'embedding': EmbeddingRegularizer,
-        'entropy': EntropyRegularizer,
+        'spectral': wrap_regularizer(SpectralRegularizer),
+        'embedding': wrap_regularizer(EmbeddingRegularizer),
+        'entropy': wrap_regularizer(EntropyRegularizer),
     }),
     nargs='+',
     metavar="REGULARIZER(*args, **kwargs)",

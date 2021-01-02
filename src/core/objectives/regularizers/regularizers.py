@@ -10,8 +10,7 @@ class WordVectorRegularizer(Regularizer):
 
     loss_name = 'word_vec'
 
-    def __init__(self, coeff: float, max_norm: float = 0.):
-        super().__init__(coeff)
+    def __init__(self, max_norm: float = 0.):
         self.max_norm = max_norm
 
     def compute_loss(self, discriminator: Discriminator, real_samples, fake_samples):
@@ -29,11 +28,10 @@ class GradientPenaltyRegularizer(Regularizer):
 
     loss_name = 'grad_penalty'
 
-    def __init__(self, coeff: float, center: float = 1.):
-        super().__init__(coeff)
+    def __init__(self, center: float = 1.):
         self.center = center
 
-    def compute_loss(self, discriminator: Discriminator, real_samples, fake_samples):
+    def __call__(self, discriminator: Discriminator, real_samples, fake_samples):
         real_vecs = discriminator.get_embedding(real_samples.ids)
         fake_vecs = discriminator.get_embedding(fake_samples.ids)
 
@@ -55,12 +53,9 @@ class EntropyRegularizer(Regularizer):
 
     def __call__(self, generator: Generator, real_samples) -> LossCollection:
         fake_samples = generator.generate(real_samples.batch_size, real_samples.maxlen)
-        loss = self.compute_loss(fake_samples)
-        entropy = fake_samples.seq_neg_logprobs.mean()
-        return LossCollection(self.coeff * loss, entropy=entropy)
-
-    def compute_loss(self, fake_samples):
         # NOTE it's biased
         logp = torch.nn.functional.log_softmax(fake_samples.logits)  # (N, T, V)
         neg_entropy = (logp.detach() * fake_samples.probs).sum(dim=-1)  # (N, T)
-        return masked_reduce(neg_entropy, mask=fake_samples.mask)  # scalar
+        loss = masked_reduce(neg_entropy, mask=fake_samples.mask)  # scalar
+
+        return loss, dict(entropy=fake_samples.seq_neg_logprobs.mean())

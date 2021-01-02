@@ -19,11 +19,10 @@ class EmbeddingRegularizer(VariableRegularizer):
 
     loss_name = 'embedding'
 
-    def __init__(self, coeff: float, max_norm: float = 0.):
-        super().__init__(coeff)
+    def __init__(self, max_norm: float = 0.):
         self.max_norm = max_norm
 
-    def compute_loss(self, module: ModuleInterface):
+    def __call__(self, module: ModuleInterface):
         embedding_L2_loss = torch.square(module.embedding_matrix).sum(dim=1)  # shape (V, )
         if self.max_norm:
             embedding_L2_loss = torch.maximum(embedding_L2_loss - self.max_norm ** 2, 0)
@@ -34,7 +33,7 @@ class SpectralRegularizer(VariableRegularizer):
 
     loss_name = 'spectral'
 
-    def compute_loss(self, module: ModuleInterface):
+    def __call__(self, module: ModuleInterface):
         loss = 0
         for module in module.modules():
             weight = getattr(module, 'weight', None)
