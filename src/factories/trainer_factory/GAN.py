@@ -16,8 +16,7 @@ from flexparse import create_action, LookUp, LookUpCall, IntRange
 from library.utils import cached_property
 
 from ..utils import create_factory_action
-from .trainer_factory import TrainerCreator
-from . import optimizers
+from .trainer_factory import TrainerCreator, create_optimizer_action_of
 
 
 class GANCreator(TrainerCreator):
@@ -73,7 +72,7 @@ class GANCreator(TrainerCreator):
         return [D_OPTIMIZER_ARG]
 
 
-D_OPTIMIZER_ARG = optimizers.create_action_of('discriminator')
+D_OPTIMIZER_ARG = create_optimizer_action_of('discriminator')
 GAN_ARGS = [
     create_action(
         '--loss',

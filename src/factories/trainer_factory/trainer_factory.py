@@ -1,11 +1,14 @@
 import abc
+import torch
 
 from core.models import Generator
 from core.train import GeneratorUpdater, Trainer
+from core.train.optimizer import OptimizerWrapper
 from factories.modules import generator_factory
-from flexparse import ArgumentParser
+from flexparse import ArgumentParser, LookUpCall
+from library.utils import ArgumentBinder
 
-from . import optimizers
+from ..utils import create_factory_action
 
 
 def create(args, meta_data, generator: Generator) -> Trainer:
@@ -18,7 +21,28 @@ def create(args, meta_data, generator: Generator) -> Trainer:
     return creator.create_trainer(generator_updater)
 
 
-G_OPTIMIZER_ARG = optimizers.create_action_of('generator')
+def create_optimizer_action_of(module_name: str):
+    return create_factory_action(
+        f'--{module_name[0]}-optimizer',
+        type=LookUpCall(
+            {
+                key: ArgumentBinder(
+                    OptimizerWrapper.as_constructor(optim_cls),
+                    preserved=['params'],
+                )
+                for key, optim_cls in [
+                    ('sgd', torch.optim.SGD),
+                    ('rmsprop', torch.optim.RMSprop),
+                    ('adam', torch.optim.Adam),
+                ]
+            },
+        ),
+        default='adam(lr=1e-4, betas=(0.5, 0.999), clip_norm=10)',
+        help_prefix=f"{module_name}'s optimizer.\n",
+    )
+
+
+G_OPTIMIZER_ARG = create_optimizer_action_of('generator')
 
 
 def create_parser(algorithm):
