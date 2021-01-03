@@ -19,9 +19,7 @@ class Generator(ModuleInterface):
             self,
             embedder: Module,
             special_token_config: SpecialTokenConfig,
-            name: str = None,
         ):
-        super().__init__(name)
         self.embedder = embedder
         self.special_token_config = special_token_config
 
@@ -42,9 +40,8 @@ class AutoRegressiveGenerator(Generator):
             embedder: Module,
             output_layer: Module,
             special_token_config: SpecialTokenConfig,
-            name: str = None,
         ):
-        super().__init__(embedder, special_token_config, name)
+        super().__init__(embedder, special_token_config)
         self.cell = cell
         self.output_layer = output_layer
 

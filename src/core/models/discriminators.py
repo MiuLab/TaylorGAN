@@ -9,8 +9,7 @@ class Discriminator(ModuleInterface):
 
     scope = 'Discriminator'
 
-    def __init__(self, network: Module, embedder: Embedding, name: str = None):
-        super().__init__(name)
+    def __init__(self, network: Module, embedder: Embedding):
         self.network = network
         self.embedder = embedder
 
