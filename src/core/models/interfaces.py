@@ -4,12 +4,6 @@ from itertools import chain
 
 class ModuleInterface:
 
-    def __init__(self, name: str = None):
-        super().__init__()
-        if not name:
-            name = self.__class__.__name__
-        self.name = name
-
     def parameters(self):
         return chain.from_iterable(network.parameters() for network in self.networks)
 

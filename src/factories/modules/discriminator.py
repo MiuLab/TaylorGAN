@@ -19,6 +19,7 @@ from library.tf_keras_zoo.layers.masking import (
 )
 from library.tf_keras_zoo.layers.resnet import ResBlock
 from library.torch_zoo.layers import GlobalAvgPool1D
+from library.utils import NamedObject
 
 from ..utils import create_factory_action
 
@@ -26,11 +27,13 @@ from ..utils import create_factory_action
 def create(args: Namespace, meta_data) -> Discriminator:
     network, fix_embeddings = args[MODEL_ARGS]
     print(f"Create discriminator: {network.argument_info.arg_string}")
-    return Discriminator(
-        network=network,
-        embedder=Embedding.from_pretrained(
-            torch.from_numpy(meta_data.load_pretrained_embeddings()),
-            freeze=fix_embeddings,
+    return NamedObject(
+        Discriminator(
+            network=network,
+            embedder=Embedding.from_pretrained(
+                torch.from_numpy(meta_data.load_pretrained_embeddings()),
+                freeze=fix_embeddings,
+            ),
         ),
         name=network.argument_info.func_name,
     )

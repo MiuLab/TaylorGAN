@@ -11,6 +11,7 @@ from core.objectives.regularizers import (
     EntropyRegularizer,
 )
 from flexparse import create_action, Namespace, LookUpCall
+from library.utils import NamedObject
 
 from ..utils import create_factory_action
 
@@ -28,14 +29,16 @@ def create(args: Namespace, meta_data) -> Generator:
         presoftmax_layer.weight.data.copy_(embedder.weight)
 
     cell = cell_func(input_size=embedder.embedding_dim)
-    return AutoRegressiveGenerator(
-        cell=cell,
-        embedder=embedder,
-        output_layer=Sequential(
-            Linear(cell.hidden_size, embedder.embedding_dim, bias=False),
-            presoftmax_layer,
+    return NamedObject(
+        AutoRegressiveGenerator(
+            cell=cell,
+            embedder=embedder,
+            output_layer=Sequential(
+                Linear(cell.hidden_size, embedder.embedding_dim, bias=False),
+                presoftmax_layer,
+            ),
+            special_token_config=meta_data.special_token_config,
         ),
-        special_token_config=meta_data.special_token_config,
         name=cell_func.argument_info.func_name,
     )
 

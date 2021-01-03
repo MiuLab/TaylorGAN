@@ -16,7 +16,7 @@ from uttut.pipeline.ops import (
 from core.preprocess import UttutPreprocessor
 from core.preprocess.adaptors import UttutPipeline
 from core.preprocess.config_objects import CorpusConfig, LanguageConfig, Namespace as PathNamespace
-from library.utils import format_id, format_path
+from library.utils import format_id, format_path, NamedDict
 
 
 load_dotenv('.env')
@@ -49,17 +49,17 @@ def preprocess(args: Namespace, return_meta: bool = False):
 
 
 def load_corpus_table(path):
-    corpus_table = {}
+    corpus_table = NamedDict()
     with open(path) as f:
         for data_id, corpus_dict in yaml.load(f, Loader=yaml.FullLoader).items():
-            config = parse_config(data_id, corpus_dict)
+            config = parse_config(corpus_dict)
             if config.is_valid():  # TODO else warning?
                 corpus_table[data_id] = config
 
     return corpus_table
 
 
-def parse_config(data_id, corpus_dict):
+def parse_config(corpus_dict):
     if isinstance(corpus_dict['path'], dict):
         path = PathNamespace(**corpus_dict['path'])
     else:
@@ -67,7 +67,6 @@ def parse_config(data_id, corpus_dict):
 
     language_id = corpus_dict['language']
     return CorpusConfig(
-        name=data_id,
         path=path,
         language_config=LANGUAGE_CONFIGS[language_id],
         maxlen=corpus_dict.get('maxlen'),
