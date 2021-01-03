@@ -1,24 +1,52 @@
 import abc
 
-from library.utils import FormatableMixin
+import torch
+
+from library.utils import ObjectWrapper, wraps_with_new_signature, format_object
 
 from ..collections import LossCollection
 
 
-class Regularizer(abc.ABC, FormatableMixin):
+class Regularizer(abc.ABC):
 
-    def __init__(self, coeff: float):
-        self.coeff = coeff
-
+    @abc.abstractmethod
     def __call__(self, **kwargs) -> LossCollection:
-        loss = self.compute_loss(**kwargs)
-        return LossCollection(self.coeff * loss, **{self.loss_name: loss})
+        pass
 
     @property
     @abc.abstractmethod
     def loss_name(self) -> str:
         pass
 
-    @abc.abstractmethod
-    def compute_loss(self):
-        pass
+
+class LossScaler(ObjectWrapper):
+
+    def __init__(self, regularizer: Regularizer, coeff: float):
+        super().__init__(regularizer)
+        self.regularizer = regularizer
+        self.coeff = coeff
+
+    def __call__(self, **kwargs):
+        loss = self.regularizer(**kwargs)
+        if isinstance(loss, torch.Tensor):
+            observables = {self.regularizer.loss_name: loss}
+        else:
+            loss, observables = loss
+
+        return LossCollection(self.coeff * loss, **observables)
+
+    @classmethod
+    def as_constructor(cls, regularizer_cls):
+
+        @wraps_with_new_signature(regularizer_cls)
+        def wrapper(coeff, *args, **kwargs):
+            return cls(
+                regularizer=regularizer_cls(*args, **kwargs),
+                coeff=coeff,
+            )
+
+        return wrapper
+
+    def __str__(self):
+        params = {'coeff': self.coeff, **self.regularizer.__dict__}
+        return format_object(self.regularizer, **params)

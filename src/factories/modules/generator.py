@@ -5,6 +5,7 @@ from torch.nn import Embedding, GRUCell, Linear, Sequential
 
 from core.models import Generator, AutoRegressiveGenerator
 from core.objectives.regularizers import (
+    LossScaler,
     SpectralRegularizer,
     EmbeddingRegularizer,
     EntropyRegularizer,
@@ -70,9 +71,9 @@ MODEL_ARGS = [
 REGULARIZER_ARG = create_factory_action(
     '--g-regularizers',
     type=LookUpCall({
-        'spectral': SpectralRegularizer,
-        'embedding': EmbeddingRegularizer,
-        'entropy': EntropyRegularizer,
+        'spectral': LossScaler.as_constructor(SpectralRegularizer),
+        'embedding': LossScaler.as_constructor(EmbeddingRegularizer),
+        'entropy': LossScaler.as_constructor(EntropyRegularizer),
     }),
     nargs='+',
     metavar="REGULARIZER(*args, **kwargs)",

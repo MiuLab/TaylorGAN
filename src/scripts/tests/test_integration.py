@@ -47,7 +47,7 @@ class TestTrain:
             '--d-reg grad_penalty(10.) spectral(0.1) embedding(0.1)',
             '--epochs 4 --batch 2',
             '--bleu 2',
-            f'--serv {serving_root} --ckpt {checkpoint_root} --save-period 2',
+            # f'--serv {serving_root} --ckpt {checkpoint_root} --save-period 2',
         ]).split()
         GAN.main()
 

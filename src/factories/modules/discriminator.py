@@ -6,6 +6,7 @@ from torch.nn import Embedding, Sequential
 
 from core.models import Discriminator
 from core.objectives.regularizers import (
+    LossScaler,
     SpectralRegularizer,
     EmbeddingRegularizer,
     GradientPenaltyRegularizer,
@@ -91,10 +92,10 @@ MODEL_ARGS = [
 REGULARIZER_ARG = create_factory_action(
     '--d-regularizers',
     type=LookUpCall({
-        'spectral': SpectralRegularizer,
-        'embedding': EmbeddingRegularizer,
-        'grad_penalty': GradientPenaltyRegularizer,
-        'word_vec': WordVectorRegularizer,
+        'spectral': LossScaler.as_constructor(SpectralRegularizer),
+        'embedding': LossScaler.as_constructor(EmbeddingRegularizer),
+        'grad_penalty': LossScaler.as_constructor(GradientPenaltyRegularizer),
+        'word_vec': LossScaler.as_constructor(WordVectorRegularizer),
     }),
     nargs='+',
     metavar="REGULARIZER(*args, **kwargs)",

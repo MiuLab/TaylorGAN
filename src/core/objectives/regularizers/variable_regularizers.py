@@ -11,16 +11,14 @@ class VariableRegularizer(Regularizer):
     def __call__(self, generator=None, discriminator=None, **kwargs) -> LossCollection:
         if generator and discriminator:
             raise TypeError
-        loss = self.compute_loss(module=generator or discriminator)
-        return LossCollection(self.coeff * loss, **{self.loss_name: loss})
+        return self.compute_loss(module=generator or discriminator)
 
 
 class EmbeddingRegularizer(VariableRegularizer):
 
     loss_name = 'embedding'
 
-    def __init__(self, coeff: float, max_norm: float = 0.):
-        super().__init__(coeff)
+    def __init__(self, max_norm: float = 0.):
         self.max_norm = max_norm
 
     def compute_loss(self, module: ModuleInterface):
