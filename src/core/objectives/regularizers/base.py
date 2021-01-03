@@ -2,12 +2,12 @@ import abc
 
 import torch
 
-from library.utils import FormatableMixin, ObjectWrapper, wraps_with_new_signature
+from library.utils import ObjectWrapper, wraps_with_new_signature, format_object
 
 from ..collections import LossCollection
 
 
-class Regularizer(abc.ABC, FormatableMixin):
+class Regularizer(abc.ABC):
 
     @abc.abstractmethod
     def __call__(self, **kwargs) -> LossCollection:
@@ -46,3 +46,7 @@ class LossScaler(ObjectWrapper):
             )
 
         return wrapper
+
+    def __str__(self):
+        params = {'coeff': self.coeff, **self.regularizer.__dict__}
+        return format_object(self.regularizer, **params)
