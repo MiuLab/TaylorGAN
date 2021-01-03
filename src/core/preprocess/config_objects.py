@@ -76,13 +76,11 @@ class CorpusConfig:
 
     def __init__(
             self,
-            name: str,
             path: Union[str, Namespace],
             language_config: LanguageConfig,
             maxlen: int = None,  # used when preprocessor.maxlen = None
             vocab_size: int = None,  # used when preprocessor.vocab_size = None
         ):
-        self.name = name
         self.path = path if isinstance(path, Namespace) else Namespace(train=path)
         self.language_config = language_config
         self.maxlen = maxlen
@@ -97,9 +95,6 @@ class CorpusConfig:
             return hasattr(self.path, 'train') and all(map(os.path.isfile, self.path.values()))
         except TypeError:
             return False
-
-    def __str__(self):
-        return self.name
 
 
 class SpecialTokenConfig:

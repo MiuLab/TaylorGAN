@@ -20,6 +20,8 @@ from .format_utils import (
     FormatableMixin,
     join_arg_string,
     left_aligned,
+    NamedObject,
+    NamedDict,
 )
 from .func_utils import ObjectWrapper, ArgumentBinder, wraps_with_new_signature
 from .iterator import batch_generator, tqdm_open

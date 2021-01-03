@@ -2,6 +2,8 @@ import termcolor
 from itertools import chain
 from typing import List
 
+from .func_utils import ObjectWrapper
+
 
 def left_aligned(str_list: List[str]) -> List[str]:
     maxlen = max(map(len, str_list), default=0)
@@ -51,3 +53,19 @@ class FormatableMixin:
 
     def get_config(self):
         return self.__dict__
+
+
+class NamedObject(ObjectWrapper):
+
+    def __init__(self, wrapped, name: str):
+        super().__init__(wrapped)
+        self.name = name
+
+    def __str__(self):
+        return self.name
+
+
+class NamedDict(dict):
+
+    def __setitem__(self, key, val):
+        super().__setitem__(key, NamedObject(val, name=key))
