@@ -27,20 +27,28 @@ class TextGenerator:
     def generate_ids(self, size: int, temperature: float = 1.) -> np.ndarray:
         return np.concatenate(
             [
-                self.generator.generate(
-                    batch_size=batch_size,
-                    maxlen=self._tokenizer.maxlen,
-                ).ids.numpy()
+                self.generator.forward(
+                    torch.tensor(batch_size),
+                    torch.tensor(self._tokenizer.maxlen),
+                    torch.tensor(temperature),
+                )
                 for batch_size in compute_batch_size(size, self.BATCH_SIZE)
             ],
             axis=0,
         )
 
     def export_traced(self):
-        return torch.jit.trace(self.generator.forward, [torch.tensor(5), torch.tensor(6)])
+        return torch.jit.trace(
+            self.generator.forward,
+            (torch.tensor(self.BATCH_SIZE), torch.tensor(self._tokenizer.maxlen), torch.tensor(1.)),
+        )
 
     def ids_to_text(self, word_ids):
         return self._tokenizer.ids_to_text(word_ids)
+
+    @classmethod
+    def load_traced(cls, path, tokenizer):
+        return cls(torch.jit.load(str(path)), tokenizer)
 
     @classmethod
     def from_model(cls, generator, tokenizer):
