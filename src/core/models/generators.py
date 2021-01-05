@@ -11,15 +11,12 @@ from .interfaces import ModuleInterface
 from .sequence_modeling import TokenSequence, SampledTokenSequence
 
 
-class Generator(ModuleInterface):
+class Generator(Module, ModuleInterface):
 
     scope = 'Generator'
 
-    def __init__(
-            self,
-            embedder: Module,
-            special_token_config: SpecialTokenConfig,
-        ):
+    def __init__(self, embedder: Module, special_token_config: SpecialTokenConfig):
+        super().__init__()
         self.embedder = embedder
         self.special_token_config = special_token_config
 
@@ -71,6 +68,9 @@ class AutoRegressiveGenerator(Generator):
             eos_idx=self.special_token_config.eos.idx,
             pad_idx=self.special_token_config.pad.idx,
         )
+
+    def forward(self, batch_size, maxlen, temperature=None):
+        return self.generate(batch_size, maxlen, temperature).ids
 
     def teacher_forcing_generate(self, samples: TokenSequence) -> SampledTokenSequence:
         sos_idx, state = self._get_start_token_and_state(batch_size=samples.ids.shape[0])

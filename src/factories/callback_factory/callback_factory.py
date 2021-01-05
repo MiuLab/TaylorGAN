@@ -3,7 +3,7 @@ import warnings
 from pathlib import Path
 from typing import List
 
-from core.evaluate import TextGenerator, PerplexityCalculator
+from core.evaluate import TextGenerator  # , PerplexityCalculator
 from core.preprocess import MetaData
 from core.train.callbacks import (
     CallbackList,
@@ -82,13 +82,7 @@ class CallbackCreator:
             serving_dir.mkdir(exist_ok=True)
             self.meta_data.tokenizer.save(serving_dir / 'tokenizer.json')
             yield ModelSaver(
-                signature={
-                    'generate': self.text_generator.signature,
-                    'perplexity': PerplexityCalculator.from_model(
-                        self.generator,
-                        maxlen=self.meta_data.maxlen,
-                    ).signature,
-                },
+                module=self.text_generator,
                 directory=serving_dir,
                 period=period,
             )

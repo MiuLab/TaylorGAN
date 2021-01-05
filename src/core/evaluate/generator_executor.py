@@ -2,6 +2,7 @@ from typing import List
 
 import numpy as np
 import tensorflow as tf
+import torch
 
 from core.models.sequence_modeling import TokenSequence
 from core.preprocess import Tokenizer
@@ -11,25 +12,32 @@ from library.utils import batch_generator, cached_property
 class TextGenerator:
     '''Facade class of Generator model'''
 
+    BATCH_SIZE = 64
+
     def __init__(self, generator, tokenizer: Tokenizer):
         self.generator = generator
         self._tokenizer = tokenizer
 
-    def generate_texts(self, size: int, batch_size: int = 64, temperature: float = 1.) -> List[str]:
+    def generate_texts(self, size: int, temperature: float = 1.) -> List[str]:
         return list(map(
             self._tokenizer.ids_to_text,
-            self.generate_ids(size, batch_size, temperature),
+            self.generate_ids(size, temperature),
         ))
 
-    def generate_ids(self, size: int, batch_size: int = 64, temperature: float = 1.) -> np.ndarray:
-        batch_list = [
-            self.generator.generate(
-                min(size - start, batch_size),
-                self._tokenizer.maxlen,
-            ).ids.numpy()
-            for start in range(0, max(size - batch_size, 0) + 1, batch_size)
-        ]
-        return np.concatenate(batch_list, axis=0)
+    def generate_ids(self, size: int, temperature: float = 1.) -> np.ndarray:
+        return np.concatenate(
+            [
+                self.generator.generate(
+                    batch_size=batch_size,
+                    maxlen=self._tokenizer.maxlen,
+                ).ids.numpy()
+                for batch_size in compute_batch_size(size, self.BATCH_SIZE)
+            ],
+            axis=0,
+        )
+
+    def export_traced(self):
+        return torch.jit.trace(self.generator.forward, [torch.tensor(5), torch.tensor(6)])
 
     def ids_to_text(self, word_ids):
         return self._tokenizer.ids_to_text(word_ids)
@@ -97,3 +105,11 @@ class PerplexityCalculator:
             NLL=generator.teacher_forcing_generate(samples).seq_neg_logprobs,
             seqlen=samples.length,
         )
+
+
+def compute_batch_size(total_size, batch_size):
+    q, m = divmod(total_size, batch_size)
+    for _ in range(q):
+        yield batch_size
+    if m:
+        yield m

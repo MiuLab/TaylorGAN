@@ -48,6 +48,7 @@ class TestTrain:
             '--epochs 4 --batch 2',
             '--bleu 2',
             # f'--serv {serving_root} --ckpt {checkpoint_root} --save-period 2',
+            f'--serv {serving_root} --save-period 2',
         ]).split()
         GAN.main()
 
@@ -71,9 +72,8 @@ class TestSaveLoad:
         assert (model_dir / 'tokenizer.json').isfile()
 
         for epo in range(period, epochs, period):
-            epo_dirname = model_dir / f'tf_model_epo{epo}'
-            assert epo_dirname.isdir()
-            assert tf.saved_model.loader.maybe_saved_model_directory(epo_dirname / '0')
+            epo_dirname = model_dir / f'model_epo{epo}.pth'
+            assert epo_dirname.isfile()
 
     @pytest.mark.dependency(name='restore', depends=['train_GAN'])
     def test_restore(self, checkpoint_root, serving_root):
