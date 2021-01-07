@@ -3,26 +3,19 @@ import warnings
 
 warnings.simplefilter('ignore', category=FutureWarning)
 
-import tensorflow as tf
-
 from core.evaluate import TextGenerator
 from core.preprocess import Tokenizer
-from scripts.snippets import set_package_verbosity, get_tf_config_proto, load_serving_signature
 
 
 def main(args):
-    set_package_verbosity(args.debug)
-
-    with tf.Session(config=get_tf_config_proto()).as_default():
-        signature = load_serving_signature(args.model_path / args.version_number)
-        tokenizer = Tokenizer.load(args.model_path.parent / 'tokenizer.json')
-        generator = TextGenerator.from_signature(signature['generate'], tokenizer=tokenizer)
-        print(f"Generate sentences to '{args.export_path}'")
-        with open(args.export_path, 'w') as f_out:
-            f_out.writelines([
-                sentence + "\n"
-                for sentence in generator.generate_texts(args.samples)
-            ])
+    tokenizer = Tokenizer.load(args.model_path.parent / 'tokenizer.json')
+    generator = TextGenerator.load_traced(args.model_path, tokenizer=tokenizer)
+    print(f"Generate sentences to '{args.export_path}'")
+    with open(args.export_path, 'w') as f_out:
+        f_out.writelines([
+            sentence + "\n"
+            for sentence in generator.generate_texts(args.samples)
+        ])
 
 
 def parse_args(argv):

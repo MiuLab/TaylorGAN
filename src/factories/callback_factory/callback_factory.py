@@ -3,7 +3,7 @@ import warnings
 from pathlib import Path
 from typing import List
 
-from core.evaluate import TextGenerator, PerplexityCalculator
+from core.evaluate import TextGenerator
 from core.preprocess import MetaData
 from core.train.callbacks import (
     CallbackList,
@@ -38,6 +38,7 @@ def create(args, trainer, generator, data_collection, meta_data, base_tag):
             tensorboard_logdir=args.tensorboard,
         ),
         *creator.create_savers(
+            trainer=trainer,
             serving_root=args.serving_root,
             checkpoint_root=args.checkpoint_root,
             period=args.save_period,
@@ -76,25 +77,20 @@ class CallbackCreator:
                 log_period=10,
             )
 
-    def create_savers(self, serving_root: Path, checkpoint_root: Path, period: int):
+    def create_savers(self, trainer, serving_root: Path, checkpoint_root: Path, period: int):
         if serving_root:
             serving_dir = serving_root / self.tag
             serving_dir.mkdir(exist_ok=True)
             self.meta_data.tokenizer.save(serving_dir / 'tokenizer.json')
             yield ModelSaver(
-                signature={
-                    'generate': self.text_generator.signature,
-                    'perplexity': PerplexityCalculator.from_model(
-                        self.generator,
-                        maxlen=self.meta_data.maxlen,
-                    ).signature,
-                },
+                module=self.text_generator,
                 directory=serving_dir,
                 period=period,
             )
 
         if checkpoint_root:
             yield ModelCheckpoint(
+                trainer=trainer,
                 directory=checkpoint_root / self.tag,
                 period=period,
             )
@@ -112,4 +108,4 @@ class CallbackCreator:
 
     @cached_property
     def text_generator(self):
-        return TextGenerator.from_model(self.generator, tokenizer=self.meta_data.tokenizer)
+        return TextGenerator(self.generator, tokenizer=self.meta_data.tokenizer)

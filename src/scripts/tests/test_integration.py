@@ -1,8 +1,8 @@
 import gc
+import os
 import sys
 
 import pytest
-import tensorflow as tf
 
 
 @pytest.fixture(scope='session')
@@ -29,7 +29,6 @@ def redirect_cache_root(cache_root_dir):
 @pytest.fixture(autouse=True)
 def transact():
     yield
-    tf.reset_default_graph()
     gc.collect()
 
 
@@ -47,7 +46,7 @@ class TestTrain:
             '--d-reg grad_penalty(10.) spectral(0.1) embedding(0.1)',
             '--epochs 4 --batch 2',
             '--bleu 2',
-            # f'--serv {serving_root} --ckpt {checkpoint_root} --save-period 2',
+            f'--serv {serving_root} --ckpt {checkpoint_root} --save-period 2',
         ]).split()
         GAN.main()
 
@@ -71,9 +70,8 @@ class TestSaveLoad:
         assert (model_dir / 'tokenizer.json').isfile()
 
         for epo in range(period, epochs, period):
-            epo_dirname = model_dir / f'tf_model_epo{epo}'
-            assert epo_dirname.isdir()
-            assert tf.saved_model.loader.maybe_saved_model_directory(epo_dirname / '0')
+            epo_dirname = model_dir / f'model_epo{epo}.pth'
+            assert epo_dirname.isfile()
 
     @pytest.mark.dependency(name='restore', depends=['train_GAN'])
     def test_restore(self, checkpoint_root, serving_root):
@@ -81,10 +79,12 @@ class TestSaveLoad:
         restore_path = min(checkpoint_root.listdir())
         main(parse_args(f'{restore_path} --epochs 6 --save-period 5'.split()))
         # successfully change saving_epochs
-        assert tf.train.latest_checkpoint(restore_path).endswith('5')
-        assert tf.saved_model.loader.maybe_saved_model_directory(
-            serving_root / restore_path.basename / 'tf_model_epo5' / '0',
-        )
+        assert set(map(os.path.basename, restore_path.listdir())) == {
+            'args',
+            'epoch2.pth',
+            'epoch4.pth',
+            'epoch5.pth',
+        }
 
 
 class TestEvaluate:
@@ -92,7 +92,7 @@ class TestEvaluate:
     @pytest.mark.dependency(name='generate_text', depends=['save_serving'])
     def test_generate_text(self, tmpdir, serving_root):
         from ..evaluate.generate_text import main, parse_args
-        model_path = min(serving_root.listdir()) / 'tf_model_epo4'
+        model_path = min(serving_root.listdir()) / 'model_epo4.pth'
         export_path = tmpdir / 'generated_text.txt'
         main(parse_args(f'--model {model_path} --export {export_path} --samples 100'.split()))
         assert len(export_path.readlines()) == 100
@@ -100,7 +100,7 @@ class TestEvaluate:
     @pytest.mark.dependency(name='perplexity', depends=['save_serving'])
     def test_perplexity(self, serving_root):
         from ..evaluate.perplexity import main, parse_args
-        model_path = min(serving_root.listdir()) / 'tf_model_epo4'
+        model_path = min(serving_root.listdir()) / 'model_epo4.pth'
         main(parse_args(f'--model {model_path} --data test'.split()))
 
     def test_evaluate_text(self, data_dir):

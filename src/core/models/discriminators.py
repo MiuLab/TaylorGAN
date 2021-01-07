@@ -5,11 +5,12 @@ from .sequence_modeling import TokenSequence
 from .interfaces import ModuleInterface
 
 
-class Discriminator(ModuleInterface):
+class Discriminator(Module, ModuleInterface):
 
     scope = 'Discriminator'
 
     def __init__(self, network: Module, embedder: Embedding):
+        super().__init__()
         self.network = network
         self.embedder = embedder
 
