@@ -17,6 +17,15 @@ class Trainer(abc.ABC):
     def fit(self, data_loader: Iterator[np.ndarray]):
         pass
 
+    def save_state(self, path):
+        state_dict = [updater.state_dict() for updater in self.updaters]
+        torch.save(state_dict, path)
+
+    def load_state(self, path):
+        state_dicts = torch.load(path)
+        for updater, state_dict in zip(self.updaters, state_dicts):
+            updater.load_state_dict(state_dict)
+
     @property
     def updaters(self):
         return [self.generator_updater]

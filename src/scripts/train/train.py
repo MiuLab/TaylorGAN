@@ -4,6 +4,7 @@ warnings.simplefilter('ignore', category=FutureWarning)
 
 from library.utils import logging_indent
 from core.train import DataLoader
+from core.train.callbacks import ModelCheckpoint
 from factories import callback_factory, data_factory, generator_factory, trainer_factory
 from scripts.snippets import set_global_random_seed, set_package_verbosity
 
@@ -43,8 +44,8 @@ def main(args, base_tag=None, checkpoint=None):
 
     if checkpoint:
         print(f"Restore from checkpoint: {checkpoint}")
-        # tf.train.Saver().restore(sess, save_path=checkpoint)
-        data_loader.skip_epochs(int(checkpoint.split('-')[-1]))
+        trainer.load_state(path=checkpoint)
+        data_loader.skip_epochs(ModelCheckpoint.epoch_number(checkpoint))
 
     trainer.fit(data_loader)
 

@@ -4,16 +4,15 @@ import warnings
 
 warnings.simplefilter('ignore', category=FutureWarning)
 
-import tensorflow as tf
-
-from . import train
+from core.train.callbacks import ModelCheckpoint
 from factories.trainer_factory.GAN import GANCreator
 from factories.trainer_factory.MLE import MLECreator
-from scripts.snippets import get_subdir_if_unique_base_tag_exists
+
+from . import train
 
 
 def main(args):
-    restore_path = get_subdir_if_unique_base_tag_exists(args.path)
+    restore_path = args.path
     main_args_path = restore_path / 'args'
     try:
         with open(main_args_path, 'r') as f_in:
@@ -29,7 +28,7 @@ def main(args):
     train.main(
         train_args,
         base_tag=os.path.basename(restore_path),
-        checkpoint=tf.train.latest_checkpoint(restore_path),
+        checkpoint=ModelCheckpoint.latest_checkpoint(restore_path),
     )
 
 

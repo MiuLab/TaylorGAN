@@ -38,6 +38,7 @@ def create(args, trainer, generator, data_collection, meta_data, base_tag):
             tensorboard_logdir=args.tensorboard,
         ),
         *creator.create_savers(
+            trainer=trainer,
             serving_root=args.serving_root,
             checkpoint_root=args.checkpoint_root,
             period=args.save_period,
@@ -76,7 +77,7 @@ class CallbackCreator:
                 log_period=10,
             )
 
-    def create_savers(self, serving_root: Path, checkpoint_root: Path, period: int):
+    def create_savers(self, trainer, serving_root: Path, checkpoint_root: Path, period: int):
         if serving_root:
             serving_dir = serving_root / self.tag
             serving_dir.mkdir(exist_ok=True)
@@ -89,6 +90,7 @@ class CallbackCreator:
 
         if checkpoint_root:
             yield ModelCheckpoint(
+                trainer=trainer,
                 directory=checkpoint_root / self.tag,
                 period=period,
             )

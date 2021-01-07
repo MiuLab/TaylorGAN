@@ -19,7 +19,7 @@ class ModelSaver(Callback):
     def on_epoch_end(self, epoch):
         if epoch % self.period == 0:
             path = self.directory / f"model_epo{epoch}.pth"
-            print(f"{epoch} epochs done. Save model to {path}.")
+            print(f"{epoch} epochs done. Save model to {format_path(path)}.")
             traced = self.module.export_traced()
             torch.jit.save(traced, str(path))
 

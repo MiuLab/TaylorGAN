@@ -1,8 +1,8 @@
 import gc
+import os
 import sys
 
 import pytest
-import tensorflow as tf
 
 
 @pytest.fixture(scope='session')
@@ -29,7 +29,6 @@ def redirect_cache_root(cache_root_dir):
 @pytest.fixture(autouse=True)
 def transact():
     yield
-    tf.reset_default_graph()
     gc.collect()
 
 
@@ -47,8 +46,7 @@ class TestTrain:
             '--d-reg grad_penalty(10.) spectral(0.1) embedding(0.1)',
             '--epochs 4 --batch 2',
             '--bleu 2',
-            # f'--serv {serving_root} --ckpt {checkpoint_root} --save-period 2',
-            f'--serv {serving_root} --save-period 2',
+            f'--serv {serving_root} --ckpt {checkpoint_root} --save-period 2',
         ]).split()
         GAN.main()
 
@@ -81,10 +79,12 @@ class TestSaveLoad:
         restore_path = min(checkpoint_root.listdir())
         main(parse_args(f'{restore_path} --epochs 6 --save-period 5'.split()))
         # successfully change saving_epochs
-        assert tf.train.latest_checkpoint(restore_path).endswith('5')
-        assert tf.saved_model.loader.maybe_saved_model_directory(
-            serving_root / restore_path.basename / 'tf_model_epo5' / '0',
-        )
+        assert set(map(os.path.basename, restore_path.listdir())) == {
+            'args',
+            'epoch2.pth',
+            'epoch4.pth',
+            'epoch5.pth',
+        }
 
 
 class TestEvaluate:

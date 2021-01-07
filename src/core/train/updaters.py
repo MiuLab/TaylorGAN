@@ -1,4 +1,7 @@
 import abc
+from more_itertools import first
+
+import torch
 
 from core.models import Generator, Discriminator
 from library.utils import format_id, reuse_method_call, logging_indent
@@ -9,7 +12,7 @@ from .pubsub_base import Subject
 
 class ModuleUpdater(Subject):
 
-    def __init__(self, module, optimizer: OptimizerWrapper, losses: list):
+    def __init__(self, module: torch.nn.Module, optimizer: OptimizerWrapper, losses: list):
         self.module = module
         self.optimizer = optimizer
         self.losses = losses
@@ -20,6 +23,18 @@ class ModuleUpdater(Subject):
     @abc.abstractmethod
     def update_step(self):
         pass
+
+    def state_dict(self) -> dict:
+        return {
+            'module': self.module.state_dict(),
+            'optimizer': self.optimizer.state_dict(),
+        }
+
+    def load_state_dict(self, state_dict: dict):
+        self.module.load_state_dict(state_dict['module'])
+        self.optimizer.load_state_dict(state_dict['optimizer'])
+        if state_dict['optimizer']['state']:
+            self.step = first(state_dict['optimizer']['state'].values())['step']
 
     @property
     def info(self):
@@ -56,7 +71,6 @@ class GeneratorUpdater(ModuleUpdater):
                 for loss in self.losses
             )
 
-        # TODO, tensor for checkpoint
         self.step += 1
         self.optimizer.zero_grad()
         loss_collection.total.backward()
@@ -90,7 +104,6 @@ class DiscriminatorUpdater(ModuleUpdater):
                 for loss in self.losses
             )
 
-        # TODO, tensor for checkpoint
         self.step += 1
         self.optimizer.zero_grad()
         loss_collection.total.backward()
