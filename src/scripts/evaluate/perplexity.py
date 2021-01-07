@@ -4,11 +4,9 @@ warnings.simplefilter('ignore', category=FutureWarning)
 
 from core.evaluate import TextGenerator
 from factories import data_factory
-from scripts.snippets import set_package_verbosity
 
 
 def main(args):
-    set_package_verbosity(args.debug)
     data_collection, meta = data_factory.preprocess(args, return_meta=True)
     generator = TextGenerator.load_traced(args.model_path, tokenizer=meta.tokenizer)
     for tag, dataset in data_collection.items():

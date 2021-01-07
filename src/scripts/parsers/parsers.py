@@ -64,11 +64,6 @@ def load_parser(**kwargs):
         required=True,
         help='path of serving model folder.',
     )
-    group.add_argument(
-        '--version-number',
-        default='0',
-        help='number of model version.',
-    )
     return parser
 
 

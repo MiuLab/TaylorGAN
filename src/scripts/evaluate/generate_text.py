@@ -5,11 +5,9 @@ warnings.simplefilter('ignore', category=FutureWarning)
 
 from core.evaluate import TextGenerator
 from core.preprocess import Tokenizer
-from scripts.snippets import set_package_verbosity
 
 
 def main(args):
-    set_package_verbosity(args.debug)
     tokenizer = Tokenizer.load(args.model_path.parent / 'tokenizer.json')
     generator = TextGenerator.load_traced(args.model_path, tokenizer=tokenizer)
     print(f"Generate sentences to '{args.export_path}'")

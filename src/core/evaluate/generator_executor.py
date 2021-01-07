@@ -45,7 +45,7 @@ class TextGenerator:
             ):
                 batch_NLL = self.generator.seq_neg_logprobs(batch_x)
                 total_NLL += batch_NLL.sum()
-                # TODO
+                # TODO seqlen
                 total_words += inputs.shape[0] * inputs.shape[1]
 
         avg_NLL = total_NLL / total_words
