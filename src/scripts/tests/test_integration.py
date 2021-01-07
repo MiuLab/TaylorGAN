@@ -100,7 +100,7 @@ class TestEvaluate:
     @pytest.mark.dependency(name='perplexity', depends=['save_serving'])
     def test_perplexity(self, serving_root):
         from ..evaluate.perplexity import main, parse_args
-        model_path = min(serving_root.listdir()) / 'tf_model_epo4'
+        model_path = min(serving_root.listdir()) / 'model_epo4.pth'
         main(parse_args(f'--model {model_path} --data test'.split()))
 
     def test_evaluate_text(self, data_dir):

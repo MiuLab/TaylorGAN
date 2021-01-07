@@ -3,7 +3,7 @@ import warnings
 from pathlib import Path
 from typing import List
 
-from core.evaluate import TextGenerator  # , PerplexityCalculator
+from core.evaluate import TextGenerator
 from core.preprocess import MetaData
 from core.train.callbacks import (
     CallbackList,
@@ -106,4 +106,4 @@ class CallbackCreator:
 
     @cached_property
     def text_generator(self):
-        return TextGenerator.from_model(self.generator, tokenizer=self.meta_data.tokenizer)
+        return TextGenerator(self.generator, tokenizer=self.meta_data.tokenizer)

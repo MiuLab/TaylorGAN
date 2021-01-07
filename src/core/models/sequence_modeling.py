@@ -57,13 +57,19 @@ class SampledTokenSequence(TokenSequence):
         return torch.nn.functional.softmax(self.logits, dim=-1)
 
     @cached_property
-    def neg_logprobs(self) -> torch.Tensor:
-        return torch.nn.functional.cross_entropy(
-            self.logits.view(-1, self.vocab_size),
-            target=self.ids.view(-1),
-            reduction='none',
-        ).view(self.batch_size, self.maxlen)  # (N, T)
-
-    @cached_property
     def seq_neg_logprobs(self) -> torch.Tensor:
-        return (self.neg_logprobs * self.mask.type_as(self.neg_logprobs)).sum(dim=-1)  # (N, )
+        return seq_neg_logprobs(self.logits, self.ids, mask=self.mask)  # (N, )
+
+
+def seq_neg_logprobs(logits, ids, mask=None):
+    batch_size, maxlen, vocab_size = logits.shape
+    neg_logprobs = torch.nn.functional.cross_entropy(
+        logits.view(-1, vocab_size),
+        target=ids.view(-1),
+        reduction='none',
+    ).view(batch_size, maxlen)  # (N, T)
+
+    if mask is not None:
+        return (neg_logprobs * mask.type_as(neg_logprobs)).sum(dim=-1)  # (N, )
+    else:
+        return neg_logprobs.sum(dim=-1)

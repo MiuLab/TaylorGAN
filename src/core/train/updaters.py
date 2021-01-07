@@ -50,10 +50,7 @@ def count_numel(params) -> int:
 class GeneratorUpdater(ModuleUpdater):
 
     def update_step(self, real_samples):
-        with reuse_method_call(
-            self.generator,
-            ['generate', 'teacher_forcing_generate'],
-        ) as generator:
+        with reuse_method_call(self.generator, ['generate']) as generator:
             loss_collection = sum(
                 loss(generator=generator, real_samples=real_samples)
                 for loss in self.losses

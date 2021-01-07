@@ -8,7 +8,7 @@ from core.preprocess import SpecialTokenConfig
 from library.torch_zoo.functions import random_choice_by_logits
 
 from .interfaces import ModuleInterface
-from .sequence_modeling import TokenSequence, SampledTokenSequence
+from .sequence_modeling import SampledTokenSequence
 
 
 class Generator(Module, ModuleInterface):
@@ -72,19 +72,20 @@ class AutoRegressiveGenerator(Generator):
     def forward(self, batch_size, maxlen, temperature=None):
         return self.generate(batch_size, maxlen, temperature).ids
 
-    def teacher_forcing_generate(self, samples: TokenSequence) -> SampledTokenSequence:
-        sos_idx, state = self._get_start_token_and_state(batch_size=samples.ids.shape[0])
+    def seq_neg_logprobs(self, word_ids: torch.Tensor) -> SampledTokenSequence:
+        word_ids = word_ids.type(torch.int64)
+        sos_idx, state = self._get_start_token_and_state(batch_size=word_ids.shape[0])
         logits_list = []
-        for word_idx in chain([sos_idx], torch.unbind(samples.ids, dim=1)[:-1]):
+        for word_idx in chain([sos_idx], torch.unbind(word_ids, dim=1)[:-1]):
             word_logits, state = self._step_func(word_idx, state)
             logits_list.append(word_logits)
 
         return SampledTokenSequence(
-            logits=torch.stack(logits_list, axis=1),
-            ids=samples.ids,
+            logits=torch.stack(logits_list, dim=1),
+            ids=word_ids,
             eos_idx=self.special_token_config.eos.idx,
             pad_idx=self.special_token_config.pad.idx,
-        )
+        ).seq_neg_logprobs
 
     def _get_start_token_and_state(self, batch_size):
         sos_idx = torch.full([batch_size], self.special_token_config.sos.idx)
