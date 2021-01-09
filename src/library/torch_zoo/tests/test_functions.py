@@ -1,5 +1,5 @@
 import numpy as np
-import torch as th
+import torch
 
 from ..functions import takewhile_mask, random_choice_by_logits
 
