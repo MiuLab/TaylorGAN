@@ -16,7 +16,7 @@ class Discriminator(Module, ModuleInterface):
 
         self.binary_output_layer = Linear(
             in_features=network(
-                torch.zeros([1, 1, embedder.embedding_dim]),
+                torch.zeros([1, 20, embedder.embedding_dim]),
             ).shape[-1],
             out_features=1,
         )
