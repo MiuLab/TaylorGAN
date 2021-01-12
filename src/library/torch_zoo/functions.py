@@ -45,3 +45,7 @@ def pairwise_euclidean(embeddings):
 
 def gaussian(square_distance):
     return torch.exp(-0.5 * square_distance)
+
+
+def sequence_mask(seqlen, maxlen):
+    return torch.arange(maxlen).unsqueeze(0) < seqlen.unsqueeze(1)
