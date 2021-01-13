@@ -53,7 +53,7 @@ class TaylorEstimator(GANEstimator):
             generator_loss: callable,
         ):
         fake_embeddings = discriminator.get_embedding(word_ids=fake_samples.ids)
-        score = discriminator.score_word_vector(fake_embeddings)
+        score = discriminator.score_word_vector(fake_embeddings, mask=fake_samples.mask)
         adv_loss = generator_loss(score)
         reward = -adv_loss
 

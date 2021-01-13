@@ -1,7 +1,5 @@
-from functools import partial
-
 import torch
-from torch.nn import AvgPool1d, Conv1d, Embedding, Linear, ReLU, Sequential
+from torch.nn import Embedding, Linear, ReLU
 
 from core.models import Discriminator
 from core.objectives.regularizers import (
@@ -12,11 +10,11 @@ from core.objectives.regularizers import (
     WordVectorRegularizer,
 )
 from flexparse import create_action, Namespace, LookUpCall
-# from library.tf_keras_zoo.layers.masking import (
-#     MaskConv1D, MaskAvgPool1D, MaskMaxPool1D, MaskGlobalAvgPool1D,
-# )
 # from library.tf_keras_zoo.layers.resnet import ResBlock
 from library.torch_zoo.layers import GlobalAvgPool1D, LambdaModule
+from library.torch_zoo.layers.masking import (
+    MaskConv1d, MaskAvgPool1d, MaskGlobalAvgPool1d, MaskSequential,
+)
 from library.utils import ArgumentBinder, NamedObject
 
 from ..utils import create_factory_action
@@ -40,20 +38,19 @@ def create(args: Namespace, meta_data) -> Discriminator:
 
 
 def cnn(input_size):
-    PoolingLayer = AvgPool1d
     ActivationLayer = ReLU
-    return Sequential(
+    return MaskSequential(
         LambdaModule(lambda x: torch.transpose(x, 1, 2)),
-        Conv1d(input_size, 512, kernel_size=3, padding=1),
+        MaskConv1d(input_size, 512, kernel_size=3, padding=1),
         ActivationLayer(),
-        Conv1d(512, 512, kernel_size=3, padding=1),
+        MaskConv1d(512, 512, kernel_size=3, padding=1),
         ActivationLayer(),
-        PoolingLayer(kernel_size=2),
-        Conv1d(512, 1024, kernel_size=3, padding=1),
+        MaskAvgPool1d(kernel_size=2),
+        MaskConv1d(512, 1024, kernel_size=3, padding=1),
         ActivationLayer(),
-        Conv1d(1024, 1024, kernel_size=3, padding=1),
+        MaskConv1d(1024, 1024, kernel_size=3, padding=1),
         ActivationLayer(),
-        GlobalAvgPool1D(dim=2),
+        MaskGlobalAvgPool1d(),
         Linear(1024, 1024),
         ActivationLayer(),
     )
