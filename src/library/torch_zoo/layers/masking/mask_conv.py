@@ -17,5 +17,5 @@ class MaskConv1d(Conv1d):
         return mask[:, start::self.stride[0]]
 
 
-def apply_mask(inputs: torch.Tensor, mask: torch.Tensor) -> torch.Tensor:
-    return inputs * mask.type_as(inputs)[:, None, ...]
+def apply_mask(inputs: torch.Tensor, mask: torch.Tensor, feature_dim: int = 1) -> torch.Tensor:
+    return inputs * mask.type_as(inputs).unsqueeze(feature_dim)
