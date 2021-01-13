@@ -10,8 +10,8 @@ from core.objectives.regularizers import (
     WordVectorRegularizer,
 )
 from flexparse import create_action, Namespace, LookUpCall
-# from library.tf_keras_zoo.layers.resnet import ResBlock
 from library.torch_zoo.layers import GlobalAvgPool1D, LambdaModule
+from library.torch_zoo.layers.resnet import ResBlock
 from library.torch_zoo.layers.masking import (
     MaskConv1d, MaskAvgPool1d, MaskGlobalAvgPool1d, MaskSequential,
 )
@@ -56,16 +56,24 @@ def cnn(input_size):
     )
 
 
-# def resnet(activation: str = 'relu'):
-#     return Sequential([
-#         Dense(units=512, activation=activation),
-#         ResBlock(activation=activation),
-#         ResBlock(activation=activation),
-#         ResBlock(activation=activation),
-#         ResBlock(activation=activation),
-#         MaskGlobalAvgPool1D(),
-#         Dense(units=1024, activation=activation),
-#     ])
+def resnet(input_size):
+    ActivationLayer = ReLU
+    return MaskSequential(
+        Linear(input_size, 512),
+        ActivationLayer(),
+        LambdaModule(lambda x: torch.transpose(x, 1, 2)),
+        ResBlock(512, kernel_size=3),
+        ActivationLayer(),
+        ResBlock(512, kernel_size=3),
+        ActivationLayer(),
+        ResBlock(512, kernel_size=3),
+        ActivationLayer(),
+        ResBlock(512, kernel_size=3),
+        ActivationLayer(),
+        MaskGlobalAvgPool1d(),
+        Linear(512, 512),
+        ActivationLayer(),
+    )
 
 
 MODEL_ARGS = [
@@ -76,6 +84,7 @@ MODEL_ARGS = [
                 key: ArgumentBinder(func, preserved=['input_size'])
                 for key, func in [
                     ('cnn', cnn),
+                    ('resnet', resnet),
                     ('test', lambda input_size: GlobalAvgPool1D(dim=1)),
                 ]
             },

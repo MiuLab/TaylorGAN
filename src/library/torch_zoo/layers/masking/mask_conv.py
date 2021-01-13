@@ -9,10 +9,9 @@ class MaskConv1d(Conv1d):
             return super().forward(inputs)
 
         masked_inputs = apply_mask(inputs, mask)
-        outputs = super().forward(masked_inputs)
-        return outputs, self._compute_mask(mask)
+        return super().forward(masked_inputs)
 
-    def _compute_mask(self, mask):
+    def compute_mask(self, mask):
         start = self.dilation[0] * (self.kernel_size[0] - 1) - 2 * self.padding[0]
         return mask[:, start::self.stride[0]]
 

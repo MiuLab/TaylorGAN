@@ -13,10 +13,9 @@ class MaskAvgPool1d(AvgPool1d):
         masked_inputs = apply_mask(inputs, mask)
         unscaled_outputs = super().forward(masked_inputs)
         true_count = super().forward(mask.type_as(inputs).unsqueeze(1))
-        outputs = unscaled_outputs / true_count.clamp(min=1e-8)
-        return outputs, self._compute_mask(mask)
+        return unscaled_outputs / true_count.clamp(min=1e-8)
 
-    def _compute_mask(self, mask):
+    def compute_mask(self, mask):
         start = self.kernel_size[0] - 1 - 2 * self.padding[0]
         return mask[:, start::self.stride[0]]
 

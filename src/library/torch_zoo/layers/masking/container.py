@@ -6,19 +6,19 @@ from torch.nn import Sequential
 class MaskSequential(Sequential):
 
     def forward(self, inputs, mask=None):
+        x = inputs
         for module in self:
-            if mask is None or inputs.ndim == 2:
-                outputs = module(inputs)
-            elif 'mask' in inspect.signature(module.forward).parameters:
-                outputs = module(inputs, mask=mask)
-                if isinstance(outputs, (list, tuple)):
-                    outputs, mask = outputs
-                else:
-                    outputs, mask = outputs, None
+            if (
+                mask is not None
+                and x.ndim > 2
+                and 'mask' in inspect.signature(module.forward).parameters
+            ):
+                x = module(x, mask=mask)
             else:
                 # assume module is unary operation
-                outputs = module(inputs)
+                x = module(x)
 
-            inputs = outputs
+            if mask is not None and hasattr(module, 'compute_mask'):
+                mask = module.compute_mask(mask)
 
-        return outputs
+        return x
