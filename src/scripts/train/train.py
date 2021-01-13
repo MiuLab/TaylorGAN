@@ -6,12 +6,10 @@ from library.utils import logging_indent
 from core.train import DataLoader
 from core.train.callbacks import ModelCheckpoint
 from factories import callback_factory, data_factory, generator_factory, trainer_factory
-from scripts.snippets import set_global_random_seed, set_package_verbosity
+from scripts.snippets import set_global_random_seed
 
 
 def main(args, base_tag=None, checkpoint=None):
-    set_package_verbosity(args.debug)
-
     with logging_indent("Set global random seed"):
         set_global_random_seed(args.random_seed)
 

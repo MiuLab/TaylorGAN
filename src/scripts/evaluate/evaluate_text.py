@@ -6,7 +6,6 @@ warnings.simplefilter('ignore', category=FutureWarning)
 from core.evaluate import BLEUCalculator, SmoothingFunction, FEDCalculator
 from factories import data_factory
 from library.utils import random_sample
-from scripts.snippets import set_package_verbosity
 
 # HUB_URL = "https://tfhub.dev/google/universal-sentence-encoder-large/3"
 HUB_URL = "https://tfhub.dev/google/universal-sentence-encoder/2"
@@ -14,8 +13,6 @@ RLM_EPOCHS = 100
 
 
 def main(args):
-    set_package_verbosity(args.debug)
-
     data_collection, meta_data = data_factory.preprocess(args, return_meta=True)
     tokenizer = meta_data.tokenizer
 
