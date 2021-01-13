@@ -10,7 +10,7 @@ from core.objectives.regularizers import (
     WordVectorRegularizer,
 )
 from flexparse import create_action, Namespace, LookUpCall
-from library.torch_zoo.layers import GlobalAvgPool1D, LambdaModule
+from library.torch_zoo.layers import LambdaModule
 from library.torch_zoo.layers.resnet import ResBlock
 from library.torch_zoo.layers.masking import (
     MaskConv1d, MaskAvgPool1d, MaskGlobalAvgPool1d, MaskSequential,
@@ -85,7 +85,7 @@ MODEL_ARGS = [
                 for key, func in [
                     ('cnn', cnn),
                     ('resnet', resnet),
-                    ('test', lambda input_size: GlobalAvgPool1D(dim=1)),
+                    ('test', lambda input_size: MaskGlobalAvgPool1d(dim=1)),
                 ]
             },
             set_info=True,

@@ -2,8 +2,6 @@ from functools import lru_cache
 from typing import List
 
 import numpy as np
-import tensorflow as tf
-import tensorflow_hub as hub
 
 from library.utils import batch_generator
 
@@ -33,6 +31,9 @@ class FEDModel:
         self.build_graph(hub_url)
 
     def build_graph(self, hub_url):
+        import tensorflow as tf
+        import tensorflow_hub as hub
+
         self.graph = tf.Graph()
         with self.graph.as_default():
             # Universal Sentence Encoder

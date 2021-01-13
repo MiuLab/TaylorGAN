@@ -4,6 +4,5 @@ from .parsers import (
     save_parser,
     load_parser,
     logging_parser,
-    backend_parser,
     develop_parser,
 )
