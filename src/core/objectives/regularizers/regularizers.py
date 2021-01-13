@@ -54,7 +54,7 @@ class EntropyRegularizer(Regularizer):
     def __call__(self, generator: Generator, real_samples) -> LossCollection:
         fake_samples = generator.generate(real_samples.batch_size, real_samples.maxlen)
         # NOTE it's biased
-        logp = torch.nn.functional.log_softmax(fake_samples.logits)  # (N, T, V)
+        logp = torch.nn.functional.log_softmax(fake_samples.logits, dim=-1)  # (N, T, V)
         neg_entropy = (logp.detach() * fake_samples.probs).sum(dim=-1)  # (N, T)
         loss = masked_reduce(neg_entropy, mask=fake_samples.mask)  # scalar
 

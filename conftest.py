@@ -1,5 +1,6 @@
 import os
 import pathlib
+from collections import Counter
 
 import pytest
 

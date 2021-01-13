@@ -16,7 +16,7 @@ class Discriminator(Module, ModuleInterface):
 
         self.binary_output_layer = Linear(
             in_features=network(
-                torch.zeros([1, 1, embedder.embedding_dim]),
+                torch.zeros([1, 20, embedder.embedding_dim]),
             ).shape[-1],
             out_features=1,
         )
@@ -29,8 +29,7 @@ class Discriminator(Module, ModuleInterface):
         return self.embedder(word_ids)
 
     def score_word_vector(self, word_vecs, mask=None) -> torch.Tensor:
-        # features = self.network(word_vecs, mask=mask)
-        features = self.network(word_vecs)
+        features = self.network(word_vecs, mask=mask)
         return self.binary_output_layer(features)
 
     @property

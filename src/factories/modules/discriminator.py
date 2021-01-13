@@ -1,8 +1,5 @@
-from functools import partial
-
-import tensorflow as tf
 import torch
-from torch.nn import Embedding, Sequential
+from torch.nn import Embedding, Linear, ReLU
 
 from core.models import Discriminator
 from core.objectives.regularizers import (
@@ -13,63 +10,70 @@ from core.objectives.regularizers import (
     WordVectorRegularizer,
 )
 from flexparse import create_action, Namespace, LookUpCall
-from library.tf_keras_zoo.layers import Dense
-from library.tf_keras_zoo.layers.masking import (
-    MaskConv1D, MaskAvgPool1D, MaskMaxPool1D, MaskGlobalAvgPool1D,
+from library.torch_zoo.layers import GlobalAvgPool1D, LambdaModule
+from library.torch_zoo.layers.resnet import ResBlock
+from library.torch_zoo.layers.masking import (
+    MaskConv1d, MaskAvgPool1d, MaskGlobalAvgPool1d, MaskSequential,
 )
-from library.tf_keras_zoo.layers.resnet import ResBlock
-from library.torch_zoo.layers import GlobalAvgPool1D
-from library.utils import NamedObject
+from library.utils import ArgumentBinder, NamedObject
 
 from ..utils import create_factory_action
 
 
 def create(args: Namespace, meta_data) -> Discriminator:
-    network, fix_embeddings = args[MODEL_ARGS]
-    print(f"Create discriminator: {network.argument_info.arg_string}")
+    network_func, fix_embeddings = args[MODEL_ARGS]
+    print(f"Create discriminator: {network_func.argument_info.arg_string}")
+    embedder = Embedding.from_pretrained(
+        torch.from_numpy(meta_data.load_pretrained_embeddings()),
+        freeze=fix_embeddings,
+    )
+
     return NamedObject(
         Discriminator(
-            network=network,
-            embedder=Embedding.from_pretrained(
-                torch.from_numpy(meta_data.load_pretrained_embeddings()),
-                freeze=fix_embeddings,
-            ),
+            network=network_func(embedder.embedding_dim),
+            embedder=embedder,
         ),
-        name=network.argument_info.func_name,
+        name=network_func.argument_info.func_name,
     )
 
 
-tf.keras.utils.get_custom_objects()['lrelu'] = partial(tf.nn.leaky_relu, alpha=0.1)
+def cnn(input_size):
+    ActivationLayer = ReLU
+    return MaskSequential(
+        LambdaModule(lambda x: torch.transpose(x, 1, 2)),
+        MaskConv1d(input_size, 512, kernel_size=3, padding=1),
+        ActivationLayer(),
+        MaskConv1d(512, 512, kernel_size=3, padding=1),
+        ActivationLayer(),
+        MaskAvgPool1d(kernel_size=2),
+        MaskConv1d(512, 1024, kernel_size=3, padding=1),
+        ActivationLayer(),
+        MaskConv1d(1024, 1024, kernel_size=3, padding=1),
+        ActivationLayer(),
+        MaskGlobalAvgPool1d(),
+        Linear(1024, 1024),
+        ActivationLayer(),
+    )
 
 
-def cnn(pooling: str = 'avg', padding: str = 'same', activation: str = 'relu'):
-    common_kwargs = dict(activation=activation, padding=padding)
-    if pooling == 'max':
-        PoolingLayer = MaskMaxPool1D
-    else:
-        PoolingLayer = MaskAvgPool1D
-
-    return Sequential([
-        MaskConv1D(filters=512, kernel_size=3, **common_kwargs),
-        MaskConv1D(filters=512, kernel_size=4, **common_kwargs),
-        PoolingLayer(pool_size=2, padding='same'),
-        MaskConv1D(filters=1024, kernel_size=3, **common_kwargs),
-        MaskConv1D(filters=1024, kernel_size=4, **common_kwargs),
-        MaskGlobalAvgPool1D(),
-        Dense(units=1024, activation=activation),
-    ])
-
-
-def resnet(activation: str = 'relu'):
-    return Sequential([
-        Dense(units=512, activation=activation),
-        ResBlock(activation=activation),
-        ResBlock(activation=activation),
-        ResBlock(activation=activation),
-        ResBlock(activation=activation),
-        MaskGlobalAvgPool1D(),
-        Dense(units=1024, activation=activation),
-    ])
+def resnet(input_size):
+    ActivationLayer = ReLU
+    return MaskSequential(
+        Linear(input_size, 512),
+        ActivationLayer(),
+        LambdaModule(lambda x: torch.transpose(x, 1, 2)),
+        ResBlock(512, kernel_size=3),
+        ActivationLayer(),
+        ResBlock(512, kernel_size=3),
+        ActivationLayer(),
+        ResBlock(512, kernel_size=3),
+        ActivationLayer(),
+        ResBlock(512, kernel_size=3),
+        ActivationLayer(),
+        MaskGlobalAvgPool1d(),
+        Linear(512, 512),
+        ActivationLayer(),
+    )
 
 
 MODEL_ARGS = [
@@ -77,9 +81,12 @@ MODEL_ARGS = [
         '-d', '--discriminator',
         type=LookUpCall(
             {
-                'cnn': cnn,
-                'resnet': resnet,
-                'test': lambda: GlobalAvgPool1D(dim=1),
+                key: ArgumentBinder(func, preserved=['input_size'])
+                for key, func in [
+                    ('cnn', cnn),
+                    ('resnet', resnet),
+                    ('test', lambda input_size: GlobalAvgPool1D(dim=1)),
+                ]
             },
             set_info=True,
         ),
