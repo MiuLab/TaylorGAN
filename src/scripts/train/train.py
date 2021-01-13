@@ -56,7 +56,6 @@ def parse_args(argv, algorithm):
         evaluate_parser,
         save_parser,
         logging_parser,
-        backend_parser,
         develop_parser,
     )
 
@@ -71,7 +70,6 @@ def parse_args(argv, algorithm):
             evaluate_parser(),
             save_parser(),
             logging_parser(),
-            backend_parser(),
             develop_parser(),
         ],
     )
