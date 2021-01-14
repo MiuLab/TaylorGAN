@@ -10,9 +10,9 @@ from core.objectives.regularizers import (
     WordVectorRegularizer,
 )
 from flexparse import create_action, Namespace, LookUpCall
-from library.torch_zoo.layers import LambdaModule
-from library.torch_zoo.layers.resnet import ResBlock
-from library.torch_zoo.layers.masking import (
+from library.torch_zoo.nn import LambdaModule
+from library.torch_zoo.nn.resnet import ResBlock
+from library.torch_zoo.nn.masking import (
     MaskConv1d, MaskAvgPool1d, MaskGlobalAvgPool1d, MaskSequential,
 )
 from library.utils import ArgumentBinder, NamedObject
