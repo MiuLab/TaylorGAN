@@ -14,7 +14,8 @@ def test_mask_avg_pool1d(padding, count_include_pad):
         x = torch.arange(10, dtype=torch.float32)[None, None].expand(2, 1, 10)  # shape (2, 1, 10)
         mask = sequence_mask(torch.tensor([4, 9]), maxlen=10)
         layer = MaskAvgPool1d(kernel_size=3, padding=padding, count_include_pad=count_include_pad)
-        out, out_mask = layer(x, mask)
+        output = layer(x, mask)
+        output_mask = layer.compute_mask(mask)
 
     if padding == 1:
         # digit: True, x: False, p: pad, () each pooling window
@@ -41,8 +42,8 @@ def test_mask_avg_pool1d(padding, count_include_pad):
             [True, True, True],  # True if all is True
         ]
 
-    np.testing.assert_array_almost_equal(out, expected_out, decimal=4)
-    np.testing.assert_array_equal(out_mask, expected_mask)
+    np.testing.assert_array_almost_equal(output, expected_out, decimal=4)
+    np.testing.assert_array_equal(output_mask, expected_mask)
 
 
 def test_mask_global_avg_pool_1d():

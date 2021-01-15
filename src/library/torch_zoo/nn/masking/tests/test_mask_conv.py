@@ -14,7 +14,8 @@ def test_mask_conv(padding):
         mask = sequence_mask(torch.tensor([2, 4]), maxlen=5)
         layer = MaskConv1d(3, 1, kernel_size=3, padding=padding, bias=False)
         layer.weight.data.fill_(1.)
-        output, out_mask = layer(x, mask)
+        output = layer(x, mask)
+        output_mask = layer.compute_mask(mask)
 
     if padding == 1:
         # digit: True, x: False, p: pad, () each conv window
@@ -43,4 +44,4 @@ def test_mask_conv(padding):
         ]
 
     np.testing.assert_array_almost_equal(output, expected_out, decimal=4)
-    np.testing.assert_array_equal(out_mask, expected_mask)
+    np.testing.assert_array_equal(output_mask, expected_mask)
