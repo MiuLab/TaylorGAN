@@ -1,5 +1,5 @@
 import torch
-from torch.nn import Embedding, Linear, ReLU
+from torch.nn import Embedding, Linear
 
 from core.models import Discriminator
 from core.objectives.regularizers import (
@@ -10,7 +10,7 @@ from core.objectives.regularizers import (
     WordVectorRegularizer,
 )
 from flexparse import create_action, Namespace, LookUpCall
-from library.torch_zoo.nn import LambdaModule
+from library.torch_zoo.nn import activations, LambdaModule
 from library.torch_zoo.nn.resnet import ResBlock
 from library.torch_zoo.nn.masking import (
     MaskConv1d, MaskAvgPool1d, MaskGlobalAvgPool1d, MaskSequential,
@@ -37,8 +37,8 @@ def create(args: Namespace, meta_data) -> Discriminator:
     )
 
 
-def cnn(input_size):
-    ActivationLayer = ReLU
+def cnn(input_size, activation: activations.TYPE_HINT = 'relu'):
+    ActivationLayer = activations.deserialize(activation)
     return MaskSequential(
         LambdaModule(lambda x: torch.transpose(x, 1, 2)),
         MaskConv1d(input_size, 512, kernel_size=3, padding=1),
@@ -56,8 +56,8 @@ def cnn(input_size):
     )
 
 
-def resnet(input_size):
-    ActivationLayer = ReLU
+def resnet(input_size, activation: activations.TYPE_HINT = 'relu'):
+    ActivationLayer = activations.deserialize(activation)
     return MaskSequential(
         Linear(input_size, 512),
         ActivationLayer(),
@@ -90,7 +90,7 @@ MODEL_ARGS = [
             },
             set_info=True,
         ),
-        default='cnn(activation=elu)',
+        default="cnn(activation='elu')",
     ),
     create_action(
         '--d-fix-embeddings',
