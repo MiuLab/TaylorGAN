@@ -1,0 +1,31 @@
+[tool.poetry]
+name = "taylorgan"
+version = "0.1.0"
+description = "Source code of our NeurIPS 2020 poster paper TaylorGAN: Neighbor-Augmented Policy Update Towards Sample-Efficient Natural Language Generation"
+authors = ["noobOriented <jsaon92@gmail.com>"]
+
+[tool.poetry.dependencies]
+python = "3.6.9"
+python-dotenv = "*"
+more-itertools = "*"
+serving-utils = "*"
+tensorboardx = "*"
+tensorflow = "1.13.1"
+tensorflow-hub = "0.7.0"
+tqdm = "^4.40.0"
+uttut = "^1.4.4"
+u-msgpack-python = "*"
+pyyaml = "*"
+flexparse = { git = "https://github.com/noobOriented/flexparse.git", branch = "main" }
+torch = "^1.7.1"
+
+[tool.poetry.dev-dependencies]
+"flake8-config-yoctol" = "^0.0.11"
+ipdb = "*"
+pytest = "*"
+pytest-cov = "*"
+pytest-dependency = "*"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
