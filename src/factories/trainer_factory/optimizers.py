@@ -1,7 +1,7 @@
 import tensorflow as tf
 
 from core.train.optimizer import OptimizerWrapper
-from flexparse.types import FactoryMethod
+from flexparse.types import LookUpCall
 from library.tf_keras_zoo.optimizers import GradientClipping, LookAhead, RAdamOptimizer, WeightDecay
 from library.utils import match_abbrev
 
@@ -23,7 +23,7 @@ def create_action_of(module_name: str):
         default='adam(1e-4,beta1=0.5,clip_global_norm=10)',
         help_prefix=(
             f"{module_name}'s optimizer.\n\n"
-            f"shared options: {FactoryMethod.COMMA.join(shared_options)}\n"
+            f"shared options: {', '.join(shared_options)}\n"
         ),
     )
 
