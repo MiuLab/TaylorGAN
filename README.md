@@ -12,7 +12,7 @@ Source code of our NeurIPS 2020 poster paper *TaylorGAN: Neighbor-Augmented Poli
 cp .env.sample .env
 ```
 
-modify the `DISK_CACHE_DIR`, `TENSORBOARD_PORT`, `TENSORBOARD_LOGDIR` as you need.
+modify the `CHECKPOINT_DIR`, `DISK_CACHE_DIR`, `TENSORBOARD_PORT`, `TENSORBOARD_LOGDIR` as you need.
 
 ### Datasets
 
@@ -32,25 +32,19 @@ and set the `PRETRAINED_EN_WORD_FASTTEXT_PATH` in `.env` to this file.
 
 ## Install
 
-Create a pipenv:
+Install peotry first: [docs](https://python-poetry.org/docs/)
+
+Install the packages:
 
 ```bash
-pipenv --three
+poetry install
 ```
 
-Then, install the packages:
+After installation:
 
 ```bash
-pipenv install
+poetry shell
 ```
-
-After installation
-
-```bash
-pipenv shell
-```
-
-Anytime you modify `.env`, you may reactivate the shell with the above to reload the variables.
 
 ### Tensorflow-GPU (**TODO**)
 
@@ -59,13 +53,7 @@ Anytime you modify `.env`, you may reactivate the shell with the above to reload
 ## Scripts
 
 ```bash
-python scripts/xxx.py
-```
-
-or
-
-```bash
-python -m scripts.xxx
+python src/scripts/xxx.py
 ```
 
 ### Train GAN
@@ -73,36 +61,38 @@ python -m scripts.xxx
 - Usage
 
 ```bash
-python scripts/train.py [-h] --dataset {test} [--maxlen positive_int] [--vocab_size positive_int]
-         [--loss {alt, JS, KL, RKL}] [--estimator ESTIMATOR_ID [k1=v1,k2=v2 ...]] [--d-steps int]
-         [-g GENERATOR_ID [k1=v1,k2=v2 ...]] [--tie-embeddings] [--g-fix-embeddings] [--g-optimizer OPTIMIZER_ID [k1=v1,k2=v2 ...]]
-         [--g-regularizer REGULARIZER_ID [k1=v1,k2=v2 ...]] [-d DISCRIMINATOR_ID [k1=v1,k2=v2 ...]] [--d-fix-embeddings]
-         [--d-optimizer OPTIMIZER_ID [k1=v1,k2=v2 ...]] [--d-regularizer REGULARIZER_ID [k1=v1,k2=v2 ...]] [--epochs int] [--batch-size int]
-         [--random-seed int] [--bleu [int∈[1, 5]]] [--fed [positive_int]] [--checkpoint-root path] [--serving-root path] [--save-period int]
-         [--tensorboard [path]] [--tags TAG [TAG ...]] [--jit] [--debug] [--profile [path]]
+python usage: GAN.py [-h] --dataset {coco_cleaned, news_cleaned, test} [--maxlen positive-int] [--vocab_size positive-int]
+                     [-g {gru, test}(*args, **kwargs)] [--tie-embeddings] [--g-fix-embeddings]
+                     [-d {cnn, resnet, test}(*args, **kwargs)] [--d-fix-embeddings]
+                     [--loss {alt, JS, KL, RKL}]
+                     [--estimator {reinforce, st, taylor, gumbel}(*args, **kwargs)] [--d-steps positive-int]
+                     [--g-regularizers REGULARIZER(*args, **kwargs) [REGULARIZER(*args, **kwargs) ...]]
+                     [--d-regularizers REGULARIZER(*args, **kwargs) [REGULARIZER(*args, **kwargs) ...]]
+                     [--g-optimizer {sgd, rmsprop, adam, radam}(*args, **kwargs)]
+                     [--d-optimizer {sgd, rmsprop, adam, radam}(*args, **kwargs)] [--epochs positive-int]
+                     [--batch-size positive-int] [--random-seed int] [--bleu [int∈[1, 5]]] [--fed [positive-int]] [--checkpoint-root Path]
+                     [--serving-root Path] [--save-period positive-int] [--tensorboard [Path]] [--tags TAG [TAG ...]] [--jit] [--debug] [--profile [Path]]
 ```
 
-See more details by
+See more details and custom options for models/optimizers/regularizers:
 
 ```bash
-python scripts/train.py -h
+python src/scripts/train.py -h
 ```
 
 - NeurIPS 2020 Parameters
 
 ```bash
-python scripts/train.py \
+python src/scripts/train/GAN.py \
          --dataset news_cleaned \
          -g gru --tie-embeddings \
-         --g-op adam learning_rate=1e-4,beta1=0.5,clip_global_norm=10 \
-         --g-reg entropy c=0.02,impl=dense \
-         -d cnn activation=elu \
-         --d-op adam learning_rate=1e-4,beta1=0.5,clip_global_norm=10 \
-         --d-reg spectral c=0.07 \
-         --d-reg embedding c=0.2,max_norm=1 \
-         --estimator taylor bandwidth=0.5 \
+         --g-reg 'entropy(0.02)' \
+         -d 'cnn(activation="elu")' \
+         --d-reg 'spectral(0.07)' \
+         --d-reg 'embedding(0.2, max_norm=1)' \
+         --estimator 'taylor(bandwidth=0.5)' \
          --loss RKL \
-         --itgu 1 --random-seed 2020 \
+         --random-seed 2020 \
          --bleu 5 --fed 10000
 ```
 
@@ -111,7 +101,7 @@ python scripts/train.py \
 First, run a tensorboard,
 
 ```sh
-sh scripts/run_tensorboard.sh
+sh src/scripts/run_tensorboard.sh
 ```
 
 It will run a tensorboard that listen to `$TENSORBOARD_LOGDIR` and setup a server at port `$TENSORBOARD_PORT`. To change these settings, change these variables in `.env`.
