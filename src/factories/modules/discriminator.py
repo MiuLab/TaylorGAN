@@ -10,7 +10,7 @@ from core.objectives.regularizers import (
     GradientPenaltyRegularizer,
     WordVectorRegularizer,
 )
-from flexparse import create_action, FactoryMethod, Namespace
+from flexparse import create_action, Namespace
 from library.tf_keras_zoo.layers import Dense, Embedding
 from library.tf_keras_zoo.layers.masking import (
     MaskConv1D, MaskAvgPool1D, MaskMaxPool1D, MaskGlobalAvgPool1D,
@@ -22,15 +22,15 @@ from ..utils import create_factory_action
 
 
 def create(args: Namespace, meta_data) -> Discriminator:
-    (network, info), fix_embeddings = args[MODEL_ARGS]
-    print(f"Create discriminator: {info.arg_string}")
+    network, fix_embeddings = args[MODEL_ARGS]
+    print(f"Create discriminator: {network.argument_info.arg_string}")
     return Discriminator(
         network=network,
         embedder=Embedding.from_weights(
             weights=meta_data.load_pretrained_embeddings(),
             trainable=not fix_embeddings,
         ),
-        name=info.func_name,
+        name=network.argument_info.func_name,
     )
 
 
@@ -77,7 +77,7 @@ MODEL_ARGS = [
         },
         dest='d_network',
         default='cnn(activation=elu)',
-        return_info=True,
+        set_info=True,
     ),
     create_action(
         '--d-fix-embeddings',
@@ -95,6 +95,6 @@ REGULARIZER_ARG = create_factory_action(
         'word_vec': WordVectorRegularizer,
     },
     nargs='+',
-    metavar=f"REGULARIZER(*args{FactoryMethod.COMMA}**kwargs)",
+    metavar=f"REGULARIZER(*args, **kwargs)",
     default=[],
 )

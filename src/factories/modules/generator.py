@@ -6,7 +6,7 @@ from core.objectives.regularizers import (
     EmbeddingRegularizer,
     EntropyRegularizer,
 )
-from flexparse import create_action, FactoryMethod, Namespace
+from flexparse import create_action, LookUpCall, Namespace
 from library.tf_keras_zoo.layers import Dense, Embedding, GRUCell, StackedRNNCells
 from library.tf_keras_zoo.layers.embeddings import OutputEmbedding
 from library.tf_keras_zoo.layers.recurrent import SkipConnectCells
@@ -16,8 +16,8 @@ from ..utils import create_factory_action
 
 
 def create(args: Namespace, meta_data) -> Generator:
-    (cell, info), fix_embeddings, tie_embeddings = args[MODEL_ARGS]
-    print(f"Create generator: {info.arg_string}")
+    cell, fix_embeddings, tie_embeddings = args[MODEL_ARGS]
+    print(f"Create generator: {cell.argument_info.arg_string}")
 
     embedding_matrix = meta_data.load_pretrained_embeddings()
     embedder = Embedding.from_weights(embedding_matrix, trainable=not fix_embeddings)
@@ -39,7 +39,7 @@ def create(args: Namespace, meta_data) -> Generator:
             presoftmax_layer,
         ]),
         special_token_config=meta_data.special_token_config,
-        name=info.func_name,
+        name=cell.argument_info.func_name,
     )
 
 
@@ -66,7 +66,7 @@ MODEL_ARGS = [
         '-g', '--generator',
         dest='g_cell',
         registry={'gru': gru_cell, 'test': lambda: GRUCell(units=10)},
-        return_info=True,
+        set_info=True,
         default='gru',
     ),
     create_action(
@@ -89,6 +89,6 @@ REGULARIZER_ARG = create_factory_action(
         'entropy': EntropyRegularizer,
     },
     nargs='+',
-    metavar=f"REGULARIZER(*args{FactoryMethod.COMMA}**kwargs)",
+    metavar=f"REGULARIZER(*args, **kwargs)",
     default=[],
 )
