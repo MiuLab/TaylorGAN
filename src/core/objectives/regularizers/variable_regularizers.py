@@ -24,7 +24,7 @@ class EmbeddingRegularizer(VariableRegularizer):
     def compute_loss(self, module: ModuleInterface):
         embedding_L2_loss = torch.square(module.embedding_matrix).sum(dim=1)  # shape (V, )
         if self.max_norm:
-            embedding_L2_loss = torch.maximum(embedding_L2_loss - self.max_norm ** 2, 0)
+            embedding_L2_loss = (embedding_L2_loss - self.max_norm ** 2).clamp(min=0.)
         return embedding_L2_loss.mean() / 2  # shape ()
 
 

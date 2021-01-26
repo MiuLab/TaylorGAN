@@ -57,13 +57,11 @@ class TaylorEstimator(GANEstimator):
         adv_loss = generator_loss(score)
         reward = -adv_loss
 
-        N, T, E = fake_embeddings.shape
-
         first_order_reward = self.taylor_first_order(
             y=reward,
             x0=fake_embeddings,
             xs=discriminator.embedding_matrix,
-        ).view(N, T, E)
+        ).view_as(fake_samples.logits)
         zeroth_order_advantage = self.compute_advantage(reward)
         advantage = zeroth_order_advantage.unsqueeze(dim=2) + first_order_reward
 
