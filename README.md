@@ -86,7 +86,7 @@ python src/scripts/train/GAN.py -h
 python src/scripts/train/GAN.py \
          --dataset news_cleaned \
          -g gru --tie-embeddings --g-reg 'entropy(0.02)' \
-         -d 'cnn(activation="elu")' --d-reg 'spectral(0.07)' --d-reg 'embedding(0.2, max_norm=1)' \
+         -d 'cnn(activation="elu")' --d-reg 'spectral(0.07)' 'embedding(0.2, max_norm=1)' \
          --estimator 'taylor(bandwidth=0.5)' --loss RKL \
          --random-seed 2020 \
          --bleu 5 --fed 10000
