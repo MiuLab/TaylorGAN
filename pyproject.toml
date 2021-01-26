@@ -8,7 +8,6 @@ authors = ["noobOriented <jsaon92@gmail.com>"]
 python = "3.6.9"
 python-dotenv = "*"
 more-itertools = "*"
-serving-utils = "*"
 tensorboardx = "*"
 tensorflow = "1.13.1"
 tensorflow-hub = "0.7.0"
