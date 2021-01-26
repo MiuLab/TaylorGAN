@@ -105,7 +105,7 @@ It will run a tensorboard that listen to `$TENSORBOARD_LOGDIR` and setup a serve
 Then, run the train script with tensorboard logging enabled:
 
 ```bash
-python scripts/train.py ... --tensorboard
+python src/scripts/train/GAN.py ... --tensorboard
 ```
 
 then, you can view the results by lauching `localhost:(TENSORBOARD_PORT)` with the web browser.
